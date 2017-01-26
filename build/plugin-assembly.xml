@@ -14,8 +14,8 @@
 	<dependencySets> 	
 		<dependencySet>                                                                                                                      
             <useProjectArtifact>false</useProjectArtifact>                                                                                   
-            <includes>                                                                                                                       
-                <include>com.hp.mqm:hp-lifecycle-management-teamcity-ci-plugin:jar</include>
+            <includes>
+                <include>com.hpe.alm.octaine.plugins:teamcity-ci-plugin:jar</include>
             </includes>                                                                                                                      
             <useTransitiveFiltering>true</useTransitiveFiltering>                                                                            
             <outputDirectory>server</outputDirectory>                                                                                             

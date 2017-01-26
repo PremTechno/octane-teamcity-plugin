@@ -3,16 +3,15 @@
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 	<modelVersion>4.0.0</modelVersion>
 
-	<artifactId>teamcity-plugin-root</artifactId>
+	<artifactId>teamcity-ci-plugin-root</artifactId>
+	<groupId>com.hpe.alm.octane.plugins</groupId>
+	<version>1.0-SNAPSHOT</version>
 	<packaging>pom</packaging>
-	<parent>
-		<artifactId>indi-integrations-root</artifactId>
-		<groupId>com.hp.mqm</groupId>
-		<version>12.53.20-SNAPSHOT</version>
-	</parent>
+
 	<properties>
 		<teamcity-version>9.1.5</teamcity-version>
 		<jackson-verison>1.9.2</jackson-verison>
+		<maven.compiler.plugin.version>1.7</maven.compiler.plugin.version>
 	</properties>
 	<repositories>
 		<repository>
@@ -33,8 +32,8 @@
 					<groupId>org.apache.maven.plugins</groupId>
 					<artifactId>maven-compiler-plugin</artifactId>
 					<configuration>
-						<source>1.7</source>
-						<target>1.7</target>
+						<source>${maven.compiler.plugin.version}</source>
+						<target>${maven.compiler.plugin.version}</target>
 					</configuration>
 				</plugin>
 				<plugin>
@@ -46,9 +45,10 @@
 				</plugin>
 			</plugins>
 		</pluginManagement>
+
 	</build>
 	<modules>
-		<module>plugin</module>
 		<module>build</module>
+		<module>plugin</module>
 	</modules>
 </project>

@@ -8,7 +8,7 @@ import shutil
 
 
 #Global params
-#zipname = '../target/hp-lifecycle-management-teamcity-ci-plugin.zip'
+#zipname = '../target/teamcity-ci-plugin.zip'
 #extractionFolder = './target/extracted'
 #tempTarget = './target/temp'
 #jarFolder = extractionFolder + '/server/'
@@ -40,7 +40,7 @@ def unzipTargetFile():
     print "Extracted : " + zipname +  " to: " + extractionFolder
 
 # sign each jar inside server folder (under extracted folder) into target/temp folder	
-# verify each signed jar and fail build in case of unsign
+# verify each signed jar and fail teamcity-ci-plugin-build in case of unsign
 def signJars():
 
     print 'starting to sign jars'
@@ -68,7 +68,7 @@ def copyXML():
 def packFiles():
     old_Working_directory = os.getcwd()
     os.chdir(tempTarget)
-    zipf = zipfile.ZipFile('../../../target/hp-lifecycle-management-teamcity-ci-plugin.zip', 'w', zipfile.ZIP_DEFLATED)
+    zipf = zipfile.ZipFile('../../../target/hpe-alm-octaine-teamcity-ci-plugin.zip', 'w', zipfile.ZIP_DEFLATED)
     for root, dirs, files in os.walk("./"):
         for file in files:
             zipf.write(os.path.join(root, file))

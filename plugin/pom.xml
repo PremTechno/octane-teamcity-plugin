@@ -3,14 +3,14 @@
 		 xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
 
 	<modelVersion>4.0.0</modelVersion>
-	<artifactId>hp-lifecycle-management-teamcity-ci-plugin</artifactId>
 	<name>HPE ALM Octane TeamCity CI Plugin</name>
+	<artifactId>teamcity-ci-plugin</artifactId>
 	<packaging>jar</packaging>
 
 	<parent>
-		<artifactId>teamcity-plugin-root</artifactId>
-		<groupId>com.hp.mqm</groupId>
-		<version>12.53.20-SNAPSHOT</version>
+		<artifactId>teamcity-ci-plugin-root</artifactId>
+		<groupId>com.hpe.alm.octane.plugins</groupId>
+		<version>1.0-SNAPSHOT</version>
 	</parent>
 
 	<properties>
@@ -20,6 +20,19 @@
 
 	<dependencies>
 
+		<dependency>
+			<artifactId>junit</artifactId>
+			<groupId>junit</groupId>
+			<scope>test</scope>
+			<version>4.12</version>
+		</dependency>
+
+
+		<dependency>
+			<groupId>org.jetbrains</groupId>
+			<artifactId>annotations</artifactId>
+			<version>13.0</version>
+		</dependency>
 		<!-- start: taken from Jetbrains TeamCity-->
 		<dependency>
 			<groupId>org.jetbrains.teamcity</groupId>
@@ -64,9 +77,9 @@
 		<!--Internals-->
 
 		<dependency>
-			<groupId>com.hp.mqm</groupId>
+			<groupId>com.hpe.alm.octane.plugins</groupId>
 			<artifactId>integrations-sdk</artifactId>
-			<version>${project.version}</version>
+			<version>1.0-SNAPSHOT</version>
 		</dependency>
 
 		<!-- Tests -->
