@@ -56,7 +56,6 @@ import java.util.Map;
 
 /**
  * Created by gullery on 21/01/2016.
- * <p/>
  * TeamCity CI Server oriented extension of CI Data Provider
  */
 

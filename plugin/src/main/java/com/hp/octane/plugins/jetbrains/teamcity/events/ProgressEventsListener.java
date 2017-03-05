@@ -43,7 +43,6 @@ import java.util.List;
 
 /**
  * Created by gullery on 13/03/2016.
- * <p/>
  * Team City Events listener for the need of publishing CI Server events to NGA server
  */
 
