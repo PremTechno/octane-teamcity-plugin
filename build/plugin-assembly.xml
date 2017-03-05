@@ -15,7 +15,7 @@
 		<dependencySet>                                                                                                                      
             <useProjectArtifact>false</useProjectArtifact>                                                                                   
             <includes>
-                <include>com.hpe.alm.octaine.plugins:teamcity-ci-plugin:jar</include>
+                <include>com.hpe.adm.octane.ciplugins:teamcity-ci-plugin:jar</include>
             </includes>                                                                                                                      
             <useTransitiveFiltering>true</useTransitiveFiltering>                                                                            
             <outputDirectory>server</outputDirectory>                                                                                             

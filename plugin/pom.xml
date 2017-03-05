@@ -8,9 +8,9 @@
 	<packaging>jar</packaging>
 
 	<parent>
-		<artifactId>teamcity-ci-plugin-root</artifactId>
-		<groupId>com.hpe.alm.octane.plugins</groupId>
-		<version>1.0</version>
+		<artifactId>teamcity-ci-plugin-suite</artifactId>
+		<groupId>com.hpe.adm.octane.ciplugins</groupId>
+		<version>1.1-SNAPSHOT</version>
 	</parent>
 
 	<properties>
@@ -77,9 +77,9 @@
 		<!--Internals-->
 
 		<dependency>
-			<groupId>com.hpe.alm.octane.plugins</groupId>
+			<groupId>com.hpe.adm.octane.ciplugins</groupId>
 			<artifactId>integrations-sdk</artifactId>
-			<version>1.0</version>
+			<version>1.1</version>
 		</dependency>
 
 		<!-- Tests -->
@@ -91,6 +91,11 @@
 			<scope>test</scope>
 		</dependency>
 
+		<dependency>
+			<groupId>log4j</groupId>
+			<artifactId>log4j</artifactId>
+			<version>1.2.17</version>
+		</dependency>
 	</dependencies>
 
 </project>
