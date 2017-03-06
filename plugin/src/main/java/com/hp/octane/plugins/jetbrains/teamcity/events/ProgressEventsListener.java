@@ -72,6 +72,7 @@ public class ProgressEventsListener extends BuildServerAdapter {
 					.setBuildCiId(queuedBuild.getItemId())
 					.setProject(queuedBuild.getBuildType().getExternalId())
 					.setProjectDisplayName(queuedBuild.getBuildType().getName())
+					.setStartTime(System.currentTimeMillis())
 					.setCauses(new ArrayList<CIEventCause>());
 			OctaneSDK.getInstance().getEventsService().publishEvent(event);
 		}
