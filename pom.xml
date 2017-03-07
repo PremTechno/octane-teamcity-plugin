@@ -9,7 +9,7 @@
 
     <name>ALM Octane teamcity plugin suite</name>
     <description></description>
-    <url></url>
+    <url>https://github.com/HPSoftware/octane-teamcity-plugin</url>
     <licenses>
         <license>
             <name>Apache License, Version 2.0</name>
@@ -43,7 +43,12 @@
         <module>plugin</module>
     </modules>
 
-    <scm></scm>
+    <scm>
+        <connection>scm:git:ssh://github.com/HPSoftware/octane-teamcity-plugin.git</connection>
+        <developerConnection>scm:git:ssh://github.com/HPSoftware/octane-teamcity-plugin.git</developerConnection>
+        <url>https://github.com/HPSoftware/octane-teamcity-plugin</url>
+        <tag>HEAD</tag>
+    </scm>
 
     <properties>
         <teamcity-version>9.1.5</teamcity-version>
@@ -52,12 +57,17 @@
         <maven-gpg-plugin.version>1.5</maven-gpg-plugin.version>
         <nexus-staging-maven-plugin.version>1.6.7</nexus-staging-maven-plugin.version>
         <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
+        <maven-source-plugin.version>2.2.1</maven-source-plugin.version>
     </properties>
 
     <repositories>
         <repository>
             <id>JetBrains</id>
             <url>http://repository.jetbrains.com/all</url>
+        </repository>
+        <repository>
+            <id>oss.sonatype.org</id>
+            <url>https://oss.sonatype.org/content/repositories/releases/</url>
         </repository>
     </repositories>
 
