@@ -8,7 +8,7 @@
     <packaging>pom</packaging>
 
     <name>ALM Octane teamcity plugin suite</name>
-    <description></description>
+    <description>ALM Octane CI teamcity plugin</description>
     <url>https://github.com/HPSoftware/octane-teamcity-plugin</url>
     <licenses>
         <license>
