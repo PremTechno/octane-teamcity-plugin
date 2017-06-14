@@ -16,7 +16,6 @@
 
 package com.hp.octane.plugins.jetbrains.teamcity;
 
-import com.hp.octane.integrations.spi.CIPluginServices;
 import com.hp.octane.integrations.dto.DTOFactory;
 import com.hp.octane.integrations.dto.configuration.CIProxyConfiguration;
 import com.hp.octane.integrations.dto.configuration.OctaneConfiguration;
@@ -31,6 +30,8 @@ import com.hp.octane.integrations.dto.tests.BuildContext;
 import com.hp.octane.integrations.dto.tests.TestRun;
 import com.hp.octane.integrations.dto.tests.TestRunResult;
 import com.hp.octane.integrations.dto.tests.TestsResult;
+import com.hp.octane.integrations.spi.CIPluginServicesBase;
+import com.hp.octane.integrations.util.CIPluginUtils;
 import com.hp.octane.plugins.jetbrains.teamcity.configuration.OctaneConfigStructure;
 import com.hp.octane.plugins.jetbrains.teamcity.factories.ModelCommonFactory;
 import com.hp.octane.plugins.jetbrains.teamcity.factories.SnapshotsFactory;
@@ -48,18 +49,14 @@ import org.springframework.beans.factory.annotation.Autowired;
 import java.io.File;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 
 /**
  * Created by gullery on 21/01/2016.
  * TeamCity CI Server oriented extension of CI Data Provider
  */
 
-public class TeamCityPluginServicesImpl implements CIPluginServices {
+public class TeamCityPluginServicesImpl extends CIPluginServicesBase {
 	private static final Logger log = LogManager.getLogger(TeamCityPluginServicesImpl.class);
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
 	private static final String pluginVersion = "9.1.5";
@@ -118,14 +115,21 @@ public class TeamCityPluginServicesImpl implements CIPluginServices {
 	public CIProxyConfiguration getProxyConfiguration(String targetHost) {
 		log.info("get proxy configuration");
 		CIProxyConfiguration result = null;
-		if (isProxyNeeded(targetHost)) {
-			log.info("proxy is required for host " + targetHost);
-			Map<String, String> propertiesMap = parseProperties(System.getenv("TEAMCITY_SERVER_OPTS"));
-			result = dtoFactory.newDTO(CIProxyConfiguration.class)
-					.setHost(propertiesMap.get("Dhttps.proxyHost"))
-					.setPort(Integer.parseInt(propertiesMap.get("Dhttps.proxyPort")))
-					.setUsername("Dhttps.proxyUser")
-					.setPassword("Dhttps.proxyPassword");
+		try {
+			URL targetHostUrl = new URL(targetHost);
+
+			if (isProxyNeeded(targetHostUrl)) {
+				log.info("proxy is required for host " + targetHost);
+				Map<String, String> propertiesMap = parseProperties(System.getenv("TEAMCITY_SERVER_OPTS"));
+				String protocol = "D"+targetHostUrl.getProtocol();
+				result = dtoFactory.newDTO(CIProxyConfiguration.class)
+						.setHost(propertiesMap.get(protocol+".proxyHost"))
+						.setPort(Integer.parseInt(propertiesMap.get(protocol+".proxyPort")))
+						.setUsername(propertiesMap.get(protocol+".proxyUser"))
+						.setPassword(propertiesMap.get(protocol+".proxyPassword"));
+			}
+		} catch (MalformedURLException e) {
+            log.error("Invalid url", e);
 		}
 		return result;
 	}
@@ -218,25 +222,18 @@ public class TeamCityPluginServicesImpl implements CIPluginServices {
 		return result;
 	}
 
-	private boolean isProxyNeeded(String targetHost) {
+	private boolean isProxyNeeded(URL targetHost) {
 		boolean result = false;
 		Map<String, String> propertiesMap = parseProperties(System.getenv("TEAMCITY_SERVER_OPTS"));
-		try {
-			URL url = new URL(targetHost);
-			String proxyHost = "D" + url.getProtocol() + ".proxyHost";
-			if (propertiesMap.get(proxyHost) != null) {
+
+		String proxyHost = "D" + targetHost.getProtocol() + ".proxyHost";
+		if (propertiesMap.get(proxyHost) != null) {
+
+			String nonProxyHostsStr = propertiesMap.get("D" + targetHost.getProtocol() + ".nonProxyHosts");
+
+			if (targetHost != null && !CIPluginUtils.isNonProxyHost(targetHost.getHost(),nonProxyHostsStr)) {
 				result = true;
-				if (targetHost != null) {
-					for (String noProxyHost : getNoProxyHosts(url.getProtocol())) {
-						if (targetHost.contains(noProxyHost)) {
-							result = false;
-							break;
-						}
-					}
-				}
 			}
-		} catch (MalformedURLException e) {
-			log.error("Invalid url", e);
 		}
 		return result;
 	}
@@ -254,10 +251,5 @@ public class TeamCityPluginServicesImpl implements CIPluginServices {
 		}
 		return propertiesMap;
 	}
-	private String[] getNoProxyHosts(String protocol) {
-		Map<String, String> propertiesMap = parseProperties(System.getenv("TEAMCITY_SERVER_OPTS"));
-		String nonProxyHostsStr = propertiesMap.get("D" + protocol + ".nonProxyHosts").replace("\"", "");
-		String[] nonProxyHosts = nonProxyHostsStr.split("\\|");
-		return nonProxyHosts;
-	}
+
 }
