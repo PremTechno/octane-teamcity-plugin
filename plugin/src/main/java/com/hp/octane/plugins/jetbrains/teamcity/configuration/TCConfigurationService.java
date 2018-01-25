@@ -91,6 +91,8 @@ public class TCConfigurationService {
 			OctaneSDK.getInstance().getConfigurationService().notifyChange();
 		} catch (JAXBException jaxbe) {
 			logger.error("failed to save Octane configuration", jaxbe);
+		} catch (IllegalStateException e){
+			logger.error("faild to publish Octane configuration", e);
 		}
 	}
 

@@ -13,6 +13,7 @@
   ~     limitations under the License.
   ~
   --%>
+<jsp:useBean id="conf" class="com.hp.octane.plugins.jetbrains.teamcity.OctaneTeamCityPlugin"/>
 
 <html>
 <head>
@@ -28,7 +29,7 @@
                 }
             };
             var parameters ="action=reload";
-            xhttp.open("GET", "/octane-rest/", true);
+            xhttp.open("GET", getServletURL(), true);
             xhttp.send(parameters);
         }
     </script>
@@ -51,12 +52,19 @@
             var server= encodeURIComponent(document.getElementById("server").value);
             var username = encodeURIComponent(document.getElementById("username1").value);
             var password =encodeURIComponent(document.getElementById("password1").value);
-
             var parameters = "action=save"+"&server="+server+"&username1="+username+"&password1="+password;
 
-            xhttp.open("POST", "/octane-rest/", true)
-            xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
-            xhttp.send(parameters)
+            xhttp.open("POST", getServletURL() , true);
+            xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
+            xhttp.send(parameters);
+        }
+
+        function getServletURL(){
+            var rootURL = "${conf.getServerUrl()}";
+            if(!rootURL){
+                return "/octane-rest/";
+            }
+            return rootURL + "/octane-rest/";
         }
 
     </script>
@@ -80,10 +88,9 @@
             var server= encodeURIComponent(document.getElementById("server").value);
             var username = encodeURIComponent(document.getElementById("username1").value);
             var password =encodeURIComponent(document.getElementById("password1").value);
-
             var parameters = "action=test&server="+server+"&username1="+username+"&password1="+password;
 
-            xhttp.open("POST", "/octane-rest/", true)
+            xhttp.open("POST", getServletURL(), true);
             xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded")
             xhttp.send(parameters)
         }

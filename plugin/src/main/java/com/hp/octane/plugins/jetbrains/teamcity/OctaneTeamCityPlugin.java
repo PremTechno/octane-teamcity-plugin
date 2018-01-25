@@ -62,12 +62,12 @@ public class OctaneTeamCityPlugin implements ServerExtension {
 
 	private OctaneConfigStructure config;
 
+	private static String rootServerUrl = null;
 	@PostConstruct
 	private void initPlugin() {
 		buildServer.registerExtension(ServerExtension.class, PLUGIN_NAME, this);
 		registerControllers();
 		config = configurationService.readConfig();
-
 		ensureServerInstanceID();
 		OctaneSDK.init(pluginServices, true);
 		logger.info("HPE Octane CI Plugin initialized; current configuration: " + config);
@@ -99,6 +99,21 @@ public class OctaneTeamCityPlugin implements ServerExtension {
 			config.setIdentity(UUID.randomUUID().toString());
 			config.setIdentityFrom(String.valueOf(new Date().getTime()));
 			configurationService.saveConfig(config);
+
 		}
+	}
+
+	public static void setRootURL(String rootUrl){
+
+		if(rootUrl != null && !rootUrl.isEmpty()){
+			rootServerUrl = rootUrl;
+			if(rootUrl.endsWith("/")){
+				rootServerUrl = rootUrl.substring(0,rootUrl.length()-1);
+			}
+		}
+	}
+
+	public String getServerUrl(){
+		return rootServerUrl;
 	}
 }
