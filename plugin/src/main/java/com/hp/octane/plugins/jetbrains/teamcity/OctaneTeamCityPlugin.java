@@ -70,7 +70,7 @@ public class OctaneTeamCityPlugin implements ServerExtension {
 		config = configurationService.readConfig();
 		ensureServerInstanceID();
 		OctaneSDK.init(pluginServices, true);
-		logger.info("HPE Octane CI Plugin initialized; current configuration: " + config);
+		logger.info("ALM Octane CI Plugin initialized; current configuration: " + config);
 	}
 
 	public ProjectManager getProjectManager() {

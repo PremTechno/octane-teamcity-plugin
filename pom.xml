@@ -22,17 +22,17 @@
         <developer>
             <id>m-seldin</id>
             <name>Michael Seldin</name>
-            <email>michael.seldin@hpe.com</email>
+            <email>michael.seldin@microfocus.com</email>
             <roles>
                 <role>Global owner and maintainer</role>
             </roles>
-            <organization>HPE</organization>
+            <organization>Microfocus</organization>
         </developer>
         <developer>
             <id>lazara3</id>
             <name>Ayellet Lazar</name>
-            <email>ayellet.lazar@hpe.com</email>
-            <organization>HPE</organization>
+            <email>ayellet.lazar@microfocus.com</email>
+            <organization>Microfocus</organization>
         </developer>
     </developers>
 

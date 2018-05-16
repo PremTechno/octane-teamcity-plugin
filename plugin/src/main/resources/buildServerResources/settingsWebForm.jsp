@@ -111,7 +111,7 @@
                     <td>
                         <input type="text" name="server" id="server"   value="" class="longField"        >
                         <span class="error" id="errorServer"></span>
-                        <span style="font-size: xx-small;">Location of the HPE ALM Octane application</span>
+                        <span style="font-size: xx-small;">Location of the ALM Octane application</span>
                     </td>
                 </tr>
 

@@ -33,7 +33,7 @@ public class OctaneConfigurationPage extends AdminPage {
 
 	private OctaneConfigurationPage(@NotNull PagePlaces pagePlaces, @NotNull PluginDescriptor pluginDescriptor) {
 		super(pagePlaces);
-		setPluginName("HPE ALM Octane CI Plugin");
+		setPluginName("ALM Octane CI Plugin");
 		setTabTitle("ALM Octane CI Plugin");
 		setIncludeUrl(pluginDescriptor.getPluginResourcesPath("settingsWebForm.jsp"));
 		setPosition(PositionConstraint.after("clouds", "email", "jabber"));
