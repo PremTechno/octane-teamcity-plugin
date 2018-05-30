@@ -8,7 +8,7 @@
     <download-url>Plugin download URL</download-url>
     <email>Plugin author e-mail</email>
     <vendor>
-      <name>HPE</name>
+      <name>MicroFocus</name>
       <url>@VendorURL@</url>
       <logo>Plugin vendor logo URL</logo>
     </vendor>

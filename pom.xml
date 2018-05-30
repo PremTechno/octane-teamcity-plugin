@@ -26,13 +26,13 @@
             <roles>
                 <role>Global owner and maintainer</role>
             </roles>
-            <organization>Microfocus</organization>
+            <organization>MicroFocus</organization>
         </developer>
         <developer>
             <id>lazara3</id>
             <name>Ayellet Lazar</name>
             <email>ayellet.lazar@microfocus.com</email>
-            <organization>Microfocus</organization>
+            <organization>MicroFocus</organization>
         </developer>
     </developers>
 
