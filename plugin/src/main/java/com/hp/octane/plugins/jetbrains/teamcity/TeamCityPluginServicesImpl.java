@@ -23,7 +23,6 @@ import com.hp.octane.integrations.dto.general.CIJobsList;
 import com.hp.octane.integrations.dto.general.CIPluginInfo;
 import com.hp.octane.integrations.dto.general.CIServerInfo;
 import com.hp.octane.integrations.dto.general.CIServerTypes;
-import com.hp.octane.integrations.dto.pipelines.BuildHistory;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
 import com.hp.octane.integrations.dto.tests.BuildContext;
@@ -31,7 +30,7 @@ import com.hp.octane.integrations.dto.tests.TestRun;
 import com.hp.octane.integrations.dto.tests.TestRunResult;
 import com.hp.octane.integrations.dto.tests.TestsResult;
 import com.hp.octane.integrations.spi.CIPluginServicesBase;
-import com.hp.octane.integrations.util.CIPluginUtils;
+import com.hp.octane.integrations.util.CIPluginSDKUtils;
 import com.hp.octane.plugins.jetbrains.teamcity.configuration.OctaneConfigStructure;
 import com.hp.octane.plugins.jetbrains.teamcity.factories.ModelCommonFactory;
 import com.hp.octane.plugins.jetbrains.teamcity.factories.SnapshotsFactory;
@@ -76,7 +75,7 @@ public class TeamCityPluginServicesImpl extends CIPluginServicesBase {
 				.setInstanceId(octaneTeamCityPlugin.getConfig().getIdentity())
 				.setInstanceIdFrom(octaneTeamCityPlugin.getConfig().getIdentityFromAsLong())
 				.setSendingTime(System.currentTimeMillis())
-				.setType(CIServerTypes.TEAMCITY)
+				.setType(CIServerTypes.TEAMCITY.value())
 				.setUrl(buildServer.getRootUrl())
 				.setVersion(pluginVersion);
 	}
@@ -90,11 +89,6 @@ public class TeamCityPluginServicesImpl extends CIPluginServicesBase {
 	@Override
 	public File getAllowedOctaneStorage() {
 		return new File(buildServer.getServerRootPath(), "logs");
-	}
-
-	@Override
-	public File getPredictiveOctanePath() {
-		return null;
 	}
 
 	@Override
@@ -163,12 +157,6 @@ public class TeamCityPluginServicesImpl extends CIPluginServicesBase {
 		}
 	}
 
-	//TODO: implement: fill build history
-	@Override
-	public BuildHistory getHistoryPipeline(String jobCiId, String originalBody) {
-		return DTOFactory.getInstance().newDTO(BuildHistory.class);
-	}
-
 	@Override
 	public TestsResult getTestsResult(String jobId, String buildNumber) {
 		TestsResult result = null;
@@ -231,7 +219,7 @@ public class TeamCityPluginServicesImpl extends CIPluginServicesBase {
 
 			String nonProxyHostsStr = propertiesMap.get("D" + targetHost.getProtocol() + ".nonProxyHosts");
 
-			if (targetHost != null && !CIPluginUtils.isNonProxyHost(targetHost.getHost(),nonProxyHostsStr)) {
+			if (targetHost != null && !CIPluginSDKUtils.isNonProxyHost(targetHost.getHost(),nonProxyHostsStr)) {
 				result = true;
 			}
 		}

@@ -69,7 +69,7 @@ public class OctaneTeamCityPlugin implements ServerExtension {
 		registerControllers();
 		config = configurationService.readConfig();
 		ensureServerInstanceID();
-		OctaneSDK.init(pluginServices, true);
+		OctaneSDK.init(pluginServices);
 		logger.info("ALM Octane CI Plugin initialized; current configuration: " + config);
 	}
 
