@@ -79,7 +79,7 @@
 		<dependency>
 			<groupId>com.hpe.adm.octane.ciplugins</groupId>
 			<artifactId>integrations-sdk</artifactId>
-			<version>1.5.6</version>
+			<version>1.5.18</version>
 		</dependency>
 
 		<!-- Tests -->
