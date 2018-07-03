@@ -83,7 +83,7 @@ public class TeamCityPluginServicesImpl extends CIPluginServicesBase {
 	@Override
 	public CIPluginInfo getPluginInfo() {
 		return dtoFactory.newDTO(CIPluginInfo.class)
-				.setVersion(pluginVersion);
+				.setVersion(octaneTeamCityPlugin.getDescriptor().getPluginVersion());
 	}
 
 	@Override
