@@ -4,7 +4,7 @@
     <modelVersion>4.0.0</modelVersion>
     <groupId>com.hpe.adm.octane.ciplugins</groupId>
     <artifactId>teamcity-ci-plugin-suite</artifactId>
-    <version>1.3-SNAPSHOT</version>
+    <version>1.2-SNAPSHOT</version>
     <packaging>pom</packaging>
 
     <name>ALM Octane teamcity plugin suite</name>
