@@ -7,7 +7,7 @@ Project status: [![Build status](https://ci.appveyor.com/api/projects/status/mby
 Master release branch status: [![Build status](https://ci.appveyor.com/api/projects/status/mby6wig2w6x5j22o/branch/master?svg=true)](https://ci.appveyor.com/project/OctaneCIPlugins/octane-teamcity-plugin/branch/master)
 
 
-## Relevent links
+## Relevant links
 -	**Download the most recent LTS version of the plugin** at [Jetbrains plugins marketplace](https://plugins.jetbrains.com/plugin/9542-alm-octane-ci-integration)
 -	**Check the open issues (and add new issues)** at [Github issues](https://github.com/MicroFocus/octane-teamcity-plugin/issues)
  
