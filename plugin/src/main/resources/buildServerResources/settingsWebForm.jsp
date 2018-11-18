@@ -22,10 +22,16 @@
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function() {
                 if (xhttp.readyState == 4 && xhttp.status == 200) {
+
+
                     var obj = JSON.parse(xhttp.responseText);
+
                     document.getElementById("server").value  = obj.uiLocation;
-                    document.getElementById("username1").value  = obj.username;
-                    document.getElementById("password1").value  = obj.secretPassword;
+
+                    addSP(0,obj.username,obj.secretPassword);
+
+                    // document.getElementById("username1").value  = obj.username;
+                    // document.getElementById("password1").value  = obj.secretPassword;
                 }
             };
             var parameters ="action=reload";
@@ -36,11 +42,70 @@
 
 
     <script>
-        function addSP()
-        {
-            var cln = document.getElementsByClassName("runnerFormTable")[0].cloneNode(true);
-            document.getElementById("spContainer").appendChild(cln);
+        function getConfCount(){
+            var count = document.getElementsByName("spConfigTable").length - 1;
+            return count;
         }
+
+        function addSP() {
+            addSP(getConfCount(),'','');
+        }
+        function addSP(index, clientId, clientSecret)
+        {
+
+            var spBlock = "<table name='spConfigTable' class='runnerFormTable'>" +
+                "<tr>" +
+                "<th><label for='username1'>Client ID <span class='mandatoryAsterix' title='Mandatory field'>*</span></label></th>" +
+                "<td>" +
+                "<input type='text' name='username"+index + "' id='username" +  index +"'   value='' class='longField'        >" +
+                "<span class='error' id='errorUsername1'></span>" +
+                "<span style='font-size: xx-small;'>Client ID used for logging into the ALM Octane server</span>" +
+                "</td>" +
+                "</tr>" +
+
+                "<tr>"+
+                "<th><label for='password1'>Client secret <span class='mandatoryAsterix' title='Mandatory field'>*</span></label></th>" +
+                "<td>" +
+                "<input type='password' name='password" + index + "' id='password"+ index  +"'   value='' class='longField'>" +
+                "<span class='error' id='errorPassword'></span>"  +
+                "<span style='font-size: xx-small;'>Client secret used for logging into the ALM Octane server</span>" +
+                "</td>"  +
+                "</tr>" +
+
+                "<tr>"+
+                "<th><label for='password1'>Shared Space <span class='mandatoryAsterix' title='Mandatory field'>*</span></label></th>" +
+                "<td>" +
+                "<input type='password' name='sharedSpace" +index + "' id='sharedSpace"+ index  +"'   value='' class='longField'>" +
+                "<span class='error' id='errorPassword'></span>"  +
+                "<span style='font-size: xx-small;'>Shared space used for logging into the ALM Octane server</span>" +
+                "</td>"  +
+                "</tr>" +
+
+
+                "<tr>" +
+                "<th><label for='password1'><span class='mandatoryAsterix' title='Mandatory field'></span></label></th>" +
+                "<td>" +
+                "<input type='button' value='Test connection' class='btn btn_primary submitButton ' id='testConnection"+ index+"'  onClick='checkConnection()'/>" +
+                "</td>" +
+                "</tr>" +
+
+            "</table>";
+
+            document.getElementById("spContainer").appendChild(htmlToElement(spBlock));
+
+            document.getElementById("username" + index).value  = clientId;
+            document.getElementById("password" + index).value  = clientSecret;
+        }
+
+        function htmlToElement(html) {
+            var template = document.createElement('template');
+            html = html.trim(); // Never return a text node of whitespace as the result
+            template.innerHTML = html;
+            return template.content.firstChild;
+        }
+            // var cln = document.getElementsByClassName("runnerFormTable")[0].cloneNode(true);
+            // document.getElementById("spContainer").appendChild(cln);
+
         function saveParams() {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function() {
@@ -54,14 +119,37 @@
                     message_box_div.innerHTML = "Saving...";
                 }
             };
-            var server= encodeURIComponent(document.getElementById("server").value);
-            var username = encodeURIComponent(document.getElementById("username1").value);
-            var password =encodeURIComponent(document.getElementById("password1").value);
-            var parameters = "action=save"+"&server="+server+"&username1="+username+"&password1="+password;
 
+            var config = {
+                "serverUrl":'',
+                "sharedSpaces":[]
+            };
+
+            var server = encodeURIComponent(document.getElementById("server").value);
+
+            config.serverUrl = server;
+
+            for(var i=0;i<=getConfCount();i++) {
+                var username = encodeURIComponent(document.getElementById("username" + i).value);
+                var password = encodeURIComponent(document.getElementById("password" + i).value);
+                var sp = encodeURIComponent(document.getElementById("sharedSpace" + i).value);
+
+                //var parameters = "action=save" + "&server=" + server + "&username1=" + username + "&password1=" + password;
+
+                config.sharedSpaces.push(
+                    {
+                        "clientId":username,
+                        "clientSecret" : password,
+                        "sharedSpace": sp
+                    }
+                )
+            }
+            //var parameters = "action=save";
             xhttp.open("POST", getServletURL() , true);
-            xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
-            xhttp.send(parameters);
+            xhttp.setRequestHeader('Content-type','application/json; charset=utf-8');
+
+            //xhttp.send(parameters);
+            xhttp.send(JSON.stringify(config));
         }
 
         function getServletURL(){
@@ -73,9 +161,6 @@
         }
 
     </script>
-
-
-
 
     <script>
         function checkConnection() {
@@ -110,47 +195,28 @@
 <div id="settingsContainer">
     <form action="/octane-rest/admin/" method="post" >
         <div class="editNotificatorSettingsPage">
+            <table class="runnerFormTable">
+                <tr>
+                    <th>
+                        <label for="server">Location
+                            <span class="mandatoryAsterix" title="Mandatory field">*</span>
+                        </label>
+                    </th>
+                    <td>
+                        <input type="text" name="server" id="server"   value="" class="longField"        >
+                        <span class="error" id="errorServer"></span>
+                        <span style="font-size: xx-small;">Location of the ALM Octane application</span>
+                    </td>
+                </tr>
+            </table>
+
             <div id="spContainer">
 
-                <table class="runnerFormTable">
-                    <tr>
-                        <th><label for="server">Location <span class="mandatoryAsterix" title="Mandatory field">*</span></label></th>
-                        <td>
-                            <input type="text" name="server" id="server"   value="" class="longField"        >
-                            <span class="error" id="errorServer"></span>
-                            <span style="font-size: xx-small;">Location of the ALM Octane application</span>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <th><label for="username1">Client ID <span class="mandatoryAsterix" title="Mandatory field">*</span></label></th>
-                        <td>
-                            <input type="text" name="username1" id="username1"   value="" class="longField"        >
-                            <span class="error" id="errorUsername1"></span>
-                            <span style="font-size: xx-small;">Client ID used for logging into the ALM Octane server</span>
-                        </td>
-                    </tr>
-
-                    <tr>
-                        <th><label for="password1">Client secret <span class="mandatoryAsterix" title="Mandatory field">*</span></label></th>
-                        <td>
-                            <input type="password" name="password1" id="password1"   value="" class="longField"        >
-                            <span class="error" id="errorPassword"></span>
-                            <span style="font-size: xx-small;">Client secret used for logging into the ALM Octane server</span>
-                        </td>
-                    </tr>
-
-                </table>
             </div>
 
             <div class="saveButtonsBlock">
-
-
-                <input type="button" value="Add Configuration" class="btn btn_primary submitButton "   onClick="addSP()"  />
-
+                <input type="button" value="Add Configuration" class="btn btn_primary submitButton "   onClick="addSP();"/>
                 <input type="button" value="Save" class="btn btn_primary submitButton "   onClick="saveParams()"  />
-                <input type="button" value="Test connection" class="btn btn_primary submitButton " id="testConnection"  onClick="checkConnection()"  />
-
             </div>
         </div>
 
