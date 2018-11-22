@@ -47,13 +47,13 @@
             return count;
         }
 
-        function addSP() {
-            addSP(getConfCount(),'','');
+        function addNewSP() {
+            addSP(getConfCount()+1,'','');
         }
         function addSP(index, clientId, clientSecret)
         {
 
-            var spBlock = "<table name='spConfigTable' class='runnerFormTable'>" +
+            var spBlock = "<table name='spConfigTable' class='runnerFormTable' id='connectionsTable" + index + "' >" +
                 "<tr>" +
                 "<th><label for='username1'>Client ID <span class='mandatoryAsterix' title='Mandatory field'>*</span></label></th>" +
                 "<td>" +
@@ -63,7 +63,7 @@
                 "</td>" +
                 "</tr>" +
 
-                "<tr>"+
+                "<tr  >"+
                 "<th><label for='password1'>Client secret <span class='mandatoryAsterix' title='Mandatory field'>*</span></label></th>" +
                 "<td>" +
                 "<input type='password' name='password" + index + "' id='password"+ index  +"'   value='' class='longField'>" +
@@ -72,7 +72,7 @@
                 "</td>"  +
                 "</tr>" +
 
-                "<tr>"+
+                "<tr  >"+
                 "<th><label for='password1'>Shared Space <span class='mandatoryAsterix' title='Mandatory field'>*</span></label></th>" +
                 "<td>" +
                 "<input type='password' name='sharedSpace" +index + "' id='sharedSpace"+ index  +"'   value='' class='longField'>" +
@@ -82,10 +82,11 @@
                 "</tr>" +
 
 
-                "<tr>" +
+                "<tr  >" +
                 "<th><label for='password1'><span class='mandatoryAsterix' title='Mandatory field'></span></label></th>" +
                 "<td>" +
                 "<input type='button' value='Test connection' class='btn btn_primary submitButton ' id='testConnection"+ index+"'  onClick='checkConnection()'/>" +
+                "<input type='button' value='Delete' class='btn btn_primary submitButton ' id='deleteConnection"+ index+"'  onClick='deleteConnection(" + index+ ")'/>" +
                 "</td>" +
                 "</tr>" +
 
@@ -163,6 +164,25 @@
     </script>
 
     <script>
+        function deleteConnection(id) {
+            var toDelete =[];
+            var table = document.getElementById("connectionsTable"+ id);
+            table.parentNode.removeChild(table);
+
+            //
+            // for (var i =  table.rows.length-1; i>=0; i--) {
+            //     //iterate through rows
+            //     //rows would be accessed using the "row" variable assigned in the for loop
+            //     if(table.rows[i].attributes["rowid"].value==id){
+            //         document.getElementById("connectionsTable").deleteRow(i);
+            //     }
+            //     // for (var j = 0, col; col = row.cells[j]; j++) {
+            //     //     document.getElementById("connectionsTable").deleteRow(id);
+            //     // }
+            // }
+            //
+
+        }
         function checkConnection() {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function() {
@@ -215,7 +235,7 @@
             </div>
 
             <div class="saveButtonsBlock">
-                <input type="button" value="Add Configuration" class="btn btn_primary submitButton "   onClick="addSP();"/>
+                <input type="button" value="Add Configuration" class="btn btn_primary submitButton "   onClick="addNewSP();"/>
                 <input type="button" value="Save" class="btn btn_primary submitButton "   onClick="saveParams()"  />
             </div>
         </div>
