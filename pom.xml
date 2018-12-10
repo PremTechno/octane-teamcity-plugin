@@ -51,7 +51,7 @@
     </scm>
 
     <properties>
-        <teamcity-version>9.1.5</teamcity-version>
+        <teamcity-version>10.0</teamcity-version>
         <jackson-verison>1.9.2</jackson-verison>
         <maven.compiler.plugin.version>1.7</maven.compiler.plugin.version>
         <maven-gpg-plugin.version>1.5</maven-gpg-plugin.version>

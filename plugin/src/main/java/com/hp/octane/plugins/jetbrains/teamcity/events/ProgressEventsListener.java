@@ -42,134 +42,135 @@ import java.util.List;
  */
 
 public class ProgressEventsListener extends BuildServerAdapter {
-	private static final Logger logger = LogManager.getLogger(ProgressEventsListener.class);
-	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
-	private static final String TRIGGER_BUILD_TYPE_KEY = "buildTypeId";
+    private static final Logger logger = LogManager.getLogger(ProgressEventsListener.class);
+    private static final DTOFactory dtoFactory = DTOFactory.getInstance();
+    private static final String TRIGGER_BUILD_TYPE_KEY = "buildTypeId";
 
-	@Autowired
-	private OctaneTeamCityPlugin octaneTeamCityPlugin;
-	@Autowired
-	private ModelCommonFactory modelCommonFactory;
-	@Autowired
-	private ParametersFactory parametersFactory;
-	@Autowired
-	private SBuildServer buildServer;
+    @Autowired
+    private ProjectManager projectManager;
+    @Autowired
+    private ModelCommonFactory modelCommonFactory;
+    @Autowired
+    private ParametersFactory parametersFactory;
+    @Autowired
+    private SBuildServer buildServer;
 
-	private ProgressEventsListener(EventDispatcher<BuildServerListener> dispatcher) {
-		dispatcher.addListener(this);
-	}
+    private ProgressEventsListener(EventDispatcher<BuildServerListener> dispatcher) {
+        dispatcher.addListener(this);
+    }
 
-	@Override
-	public void buildTypeAddedToQueue(@NotNull SQueuedBuild queuedBuild) {
-		TriggeredBy triggeredBy = queuedBuild.getTriggeredBy();
-		if (!triggeredBy.getParameters().containsKey(TRIGGER_BUILD_TYPE_KEY)) {
+    @Override
+    public void buildTypeAddedToQueue(@NotNull SQueuedBuild queuedBuild) {
+        TriggeredBy triggeredBy = queuedBuild.getTriggeredBy();
+        if (!triggeredBy.getParameters().containsKey(TRIGGER_BUILD_TYPE_KEY)) {
 
-			CIEvent event = dtoFactory.newDTO(CIEvent.class)
-					.setEventType(CIEventType.STARTED)
-					.setBuildCiId(queuedBuild.getItemId())
-					.setProject(queuedBuild.getBuildType().getExternalId())
-					.setProjectDisplayName(queuedBuild.getBuildType().getName())
-					.setStartTime(System.currentTimeMillis())
-					.setCauses(new ArrayList<CIEventCause>());
-			OctaneSDK.getInstance().getEventsService().publishEvent(event);
-		}
-	}
+            CIEvent event = dtoFactory.newDTO(CIEvent.class)
+                    .setEventType(CIEventType.STARTED)
+                    .setBuildCiId(queuedBuild.getItemId())
+                    .setProject(queuedBuild.getBuildType().getExternalId())
+                    .setProjectDisplayName(queuedBuild.getBuildType().getName())
+                    .setStartTime(System.currentTimeMillis())
+                    .setCauses(new ArrayList<>());
+            OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(event));
+        }
+    }
 
-	@Override
-	public void buildStarted(@NotNull SRunningBuild build) {
-		TriggeredBy triggeredBy = build.getTriggeredBy();
-		List<CIEventCause> causes = new ArrayList<>();
+    @Override
+    public void buildStarted(@NotNull SRunningBuild build) {
+        TriggeredBy triggeredBy = build.getTriggeredBy();
+        List<CIEventCause> causes = new ArrayList<>();
 
-		updateBuildTriggerCause(triggeredBy, causes);
+        updateBuildTriggerCause(triggeredBy, causes);
 
-		CIEvent event = dtoFactory.newDTO(CIEvent.class)
-				.setEventType(CIEventType.STARTED)
-				.setProject(build.getBuildTypeExternalId())
-				.setProjectDisplayName(build.getBuildTypeName())
-				.setBuildCiId(String.valueOf(build.getBuildId()))
-				.setNumber(build.getBuildNumber())
-				.setParameters(parametersFactory.obtainFromBuild(build))
-				.setCauses(causes)
-				.setStartTime(build.getStartDate().getTime())
-				.setEstimatedDuration(build.getDurationEstimate() * 1000);
-		OctaneSDK.getInstance().getEventsService().publishEvent(event);
-	}
+        CIEvent event = dtoFactory.newDTO(CIEvent.class)
+                .setEventType(CIEventType.STARTED)
+                .setProject(build.getBuildTypeExternalId())
+                .setProjectDisplayName(build.getBuildTypeName())
+                .setBuildCiId(String.valueOf(build.getBuildId()))
+                .setNumber(build.getBuildNumber())
+                .setParameters(parametersFactory.obtainFromBuild(build))
+                .setCauses(causes)
+                .setStartTime(build.getStartDate().getTime())
+                .setEstimatedDuration(build.getDurationEstimate() * 1000);
+        OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(event));
+    }
 
-	@Override
-	public void changesLoaded(@NotNull SRunningBuild build) {
-		TriggeredBy triggeredBy = build.getTriggeredBy();
-		List<CIEventCause> causes = new ArrayList<>();
+    @Override
+    public void changesLoaded(@NotNull SRunningBuild build) {
+        TriggeredBy triggeredBy = build.getTriggeredBy();
+        List<CIEventCause> causes = new ArrayList<>();
 
-		updateBuildTriggerCause(triggeredBy, causes);
-		CIEvent scmEvent = dtoFactory.newDTO(CIEvent.class)
-			.setEventType(CIEventType.SCM)
-			.setCauses(causes)
-			.setProject(build.getBuildTypeExternalId())
-			.setProjectDisplayName(build.getBuildTypeName())
-			.setBuildCiId(String.valueOf(build.getBuildId()))
-			.setNumber(build.getBuildNumber())
-			.setEstimatedDuration(build.getDurationEstimate() * 1000)
-			.setStartTime(System.currentTimeMillis())
-			.setPhaseType(PhaseType.INTERNAL)
-			.setScmData(ScmUtils.getScmData(build));
+        updateBuildTriggerCause(triggeredBy, causes);
+        CIEvent scmEvent = dtoFactory.newDTO(CIEvent.class)
+                .setEventType(CIEventType.SCM)
+                .setCauses(causes)
+                .setProject(build.getBuildTypeExternalId())
+                .setProjectDisplayName(build.getBuildTypeName())
+                .setBuildCiId(String.valueOf(build.getBuildId()))
+                .setNumber(build.getBuildNumber())
+                .setEstimatedDuration(build.getDurationEstimate() * 1000)
+                .setStartTime(System.currentTimeMillis())
+                .setPhaseType(PhaseType.INTERNAL)
+                .setScmData(ScmUtils.getScmData(build));
 
-		OctaneSDK.getInstance().getEventsService().publishEvent(scmEvent);
-	}
+        OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(scmEvent));
+    }
 
-	@Override
-	public void buildFinished(@NotNull SRunningBuild build) {
-		TriggeredBy triggeredBy = build.getTriggeredBy();
-		List<CIEventCause> causes = new ArrayList<>();
+    @Override
+    public void buildFinished(@NotNull SRunningBuild build) {
+        TriggeredBy triggeredBy = build.getTriggeredBy();
+        List<CIEventCause> causes = new ArrayList<>();
 
-		updateBuildTriggerCause(triggeredBy, causes);
+        updateBuildTriggerCause(triggeredBy, causes);
 
-		CIEvent event = dtoFactory.newDTO(CIEvent.class)
-				.setEventType(CIEventType.FINISHED)
-				.setProject(build.getBuildTypeExternalId())
-				.setProjectDisplayName(build.getBuildTypeName())
-				.setBuildCiId(String.valueOf(build.getBuildId()))
-				.setNumber(build.getBuildNumber())
-				.setParameters(parametersFactory.obtainFromBuild(build))
-				.setCauses(causes)
-				.setStartTime(build.getStartDate().getTime())
-				.setEstimatedDuration(build.getDurationEstimate() * 1000)
-				.setDuration(build.getDuration() * 1000)
-				.setResult(modelCommonFactory.resultFromNativeStatus(build.getBuildStatus()));
-		OctaneSDK.getInstance().getEventsService().publishEvent(event);
-	}
+        CIEvent event = dtoFactory.newDTO(CIEvent.class)
+                .setEventType(CIEventType.FINISHED)
+                .setProject(build.getBuildTypeExternalId())
+                .setProjectDisplayName(build.getBuildTypeName())
+                .setBuildCiId(String.valueOf(build.getBuildId()))
+                .setNumber(build.getBuildNumber())
+                .setParameters(parametersFactory.obtainFromBuild(build))
+                .setCauses(causes)
+                .setStartTime(build.getStartDate().getTime())
+                .setEstimatedDuration(build.getDurationEstimate() * 1000)
+                .setDuration(build.getDuration() * 1000)
+                .setResult(modelCommonFactory.resultFromNativeStatus(build.getBuildStatus()));
+        OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(event));
+    }
 
-	@Override
-	public void serverStartup() {
-		OctaneTeamCityPlugin.setRootURL(buildServer.getRootUrl());
-	}
-	private void updateBuildTriggerCause(TriggeredBy triggeredBy, List<CIEventCause> causes) {
-		if (triggeredBy.getParameters().containsKey(TRIGGER_BUILD_TYPE_KEY)) {
-			String rootBuildTypeId = triggeredBy.getParameters().get(TRIGGER_BUILD_TYPE_KEY);
-			SQueuedBuild rootBuild = getTriggerBuild(rootBuildTypeId);
-			if (rootBuild != null) {
-				causes.add(causeFromBuild(rootBuild));
-			}
-		}
-	}
+    @Override
+    public void serverStartup() {
+        OctaneTeamCityPlugin.setRootURL(buildServer.getRootUrl());
+    }
 
-	private SQueuedBuild getTriggerBuild(String triggerBuildTypeId) {
-		SQueuedBuild result = null;
-		SBuildType triggerBuildType = octaneTeamCityPlugin.getProjectManager().findBuildTypeById(triggerBuildTypeId);
-		if (triggerBuildType != null) {
-			List<SQueuedBuild> queuedBuildsOfType = triggerBuildType.getQueuedBuilds(null);
-			if (!queuedBuildsOfType.isEmpty()) {
-				result = queuedBuildsOfType.get(0);
-			}
-		}
-		return result;
-	}
+    private void updateBuildTriggerCause(TriggeredBy triggeredBy, List<CIEventCause> causes) {
+        if (triggeredBy.getParameters().containsKey(TRIGGER_BUILD_TYPE_KEY)) {
+            String rootBuildTypeId = triggeredBy.getParameters().get(TRIGGER_BUILD_TYPE_KEY);
+            SQueuedBuild rootBuild = getTriggerBuild(rootBuildTypeId);
+            if (rootBuild != null) {
+                causes.add(causeFromBuild(rootBuild));
+            }
+        }
+    }
 
-	private CIEventCause causeFromBuild(SQueuedBuild build) {
-		return dtoFactory.newDTO(CIEventCause.class)
-				.setType(CIEventCauseType.UPSTREAM)
-				.setProject(build.getBuildType().getExternalId())
-				.setBuildCiId(String.valueOf(build.getItemId()));
-	}
+    private SQueuedBuild getTriggerBuild(String triggerBuildTypeId) {
+        SQueuedBuild result = null;
+        SBuildType triggerBuildType = projectManager.findBuildTypeById(triggerBuildTypeId);
+        if (triggerBuildType != null) {
+            List<SQueuedBuild> queuedBuildsOfType = triggerBuildType.getQueuedBuilds(null);
+            if (!queuedBuildsOfType.isEmpty()) {
+                result = queuedBuildsOfType.get(0);
+            }
+        }
+        return result;
+    }
+
+    private CIEventCause causeFromBuild(SQueuedBuild build) {
+        return dtoFactory.newDTO(CIEventCause.class)
+                .setType(CIEventCauseType.UPSTREAM)
+                .setProject(build.getBuildType().getExternalId())
+                .setBuildCiId(String.valueOf(build.getItemId()));
+    }
 
 
 }

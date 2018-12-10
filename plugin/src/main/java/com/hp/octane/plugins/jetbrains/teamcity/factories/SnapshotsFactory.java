@@ -21,13 +21,7 @@ import com.hp.octane.integrations.dto.snapshots.CIBuildResult;
 import com.hp.octane.integrations.dto.snapshots.CIBuildStatus;
 import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
 import com.hp.octane.integrations.dto.snapshots.SnapshotPhase;
-import com.hp.octane.plugins.jetbrains.teamcity.OctaneTeamCityPlugin;
-import jetbrains.buildServer.serverSide.SBuild;
-import jetbrains.buildServer.serverSide.SBuildType;
-import jetbrains.buildServer.serverSide.SFinishedBuild;
-import jetbrains.buildServer.serverSide.SQueuedBuild;
-import jetbrains.buildServer.serverSide.SRunningBuild;
-import jetbrains.buildServer.serverSide.TriggeredBy;
+import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.dependency.Dependency;
 import org.springframework.beans.factory.annotation.Autowired;
 
@@ -43,14 +37,14 @@ public class SnapshotsFactory {
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
 
 	@Autowired
-	private OctaneTeamCityPlugin octaneTeamCityPlugin;
-	@Autowired
 	private ModelCommonFactory modelCommonFactory;
 	@Autowired
 	private ParametersFactory parametersFactory;
+	@Autowired
+	private ProjectManager projectManager;
 
 	public SnapshotNode createSnapshot(String buildConfigurationId) {
-		SBuildType rootJob = octaneTeamCityPlugin.getProjectManager().findBuildTypeByExternalId(buildConfigurationId);
+		SBuildType rootJob = projectManager.findBuildTypeByExternalId(buildConfigurationId);
 		SnapshotNode result = null;
 		if (rootJob != null) {
 			result = createSnapshotItem(rootJob, rootJob.getBuildTypeId());
