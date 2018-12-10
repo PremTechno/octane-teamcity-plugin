@@ -18,11 +18,14 @@ package com.hp.octane.plugins.jetbrains.teamcity.actions;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.type.CollectionType;
+import com.fasterxml.jackson.databind.type.TypeFactory;
+import com.hp.octane.integrations.OctaneConfiguration;
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.dto.DTOFactory;
-import com.hp.octane.integrations.dto.configuration.OctaneConfiguration;
+import com.hp.octane.plugins.jetbrains.teamcity.TeamCityPluginServicesImpl;
+import com.hp.octane.plugins.jetbrains.teamcity.configuration.OctaneConfigMultiSharedSpaceStructure;
 import com.hp.octane.plugins.jetbrains.teamcity.configuration.OctaneConfigStructure;
-import com.hp.octane.plugins.jetbrains.teamcity.OctaneTeamCityPlugin;
+import com.hp.octane.plugins.jetbrains.teamcity.configuration.TCConfigurationHolder;
 import com.hp.octane.plugins.jetbrains.teamcity.configuration.TCConfigurationService;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -34,85 +37,166 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
+import java.util.*;
 
 /**
  * Created by lazara on 14/02/2016.
  */
 
 public class ConfigurationActionsController implements Controller {
-	private static final Logger logger = LogManager.getLogger(ConfigurationActionsController.class);
-	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
+    private static final Logger logger = LogManager.getLogger(ConfigurationActionsController.class);
 
-	@Autowired
-	private OctaneTeamCityPlugin octaneTeamCityPlugin;
-	@Autowired
-	private TCConfigurationService configurationService;
+    @Autowired
+    private TCConfigurationService configurationService;
+    @Autowired
+    private TCConfigurationHolder holder;
 
-	@Override
-	public ModelAndView handleRequest(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
-		String returnStr = "";
-		String action = httpServletRequest.getParameter("action");
+    @Override
+    public ModelAndView handleRequest(HttpServletRequest httpServletRequest, HttpServletResponse httpServletResponse) {
+        String returnStr = "";
+        String action = httpServletRequest.getParameter("action");
 
-		if (action == null || action.equals("")) {
-			returnStr = reloadConfiguration();
-		} else {
-			try {
-				String url = httpServletRequest.getParameter("server");
-				String apiKey = httpServletRequest.getParameter("username1");
-				String secret = httpServletRequest.getParameter("password1");
-				OctaneConfiguration octaneConfiguration;
+        if (!"post".equals(httpServletRequest.getMethod().toLowerCase()) && (action == null || action.isEmpty())) {
+            returnStr = reloadConfiguration();
+        } else {
+            try {
+                if ("test".equalsIgnoreCase(action)) {
+                    String server = httpServletRequest.getParameter("server");
+                    String url = parseUiLocation(server);
+                    String apiKey = httpServletRequest.getParameter("username");
+                    String secret = httpServletRequest.getParameter("password");
+                    String sharedSpace = httpServletRequest.getParameter("sharedSpace");
+                    OctaneConfiguration testedOctaneConfiguration = new OctaneConfiguration(UUID.randomUUID().toString(), url, sharedSpace);
+                    testedOctaneConfiguration.setClient(apiKey);
+                    testedOctaneConfiguration.setSecret(secret);
+                    returnStr = configurationService.checkConfiguration(testedOctaneConfiguration);
+                } else {
+                    //save configuration
+                    ObjectMapper objectMapper = new ObjectMapper();
+                    TypeFactory typeFactory = objectMapper.getTypeFactory();
+                    CollectionType collectionType = typeFactory.constructCollectionType(
+                            List.class, OctaneConfigStructure.class);
+                    List<OctaneConfigStructure> configs = objectMapper.readValue(httpServletRequest.getInputStream(), collectionType);
+                    handleDeletedConfigurations(configs);
+                    returnStr = updateConfiguration(configs);
+                }
+            } catch (Exception e) {
+                logger.error("failed to process configuration request (" + (action == null ? "save" : action) + ")", e);
+                returnStr = e.getMessage() + ". Failed to process configuration request (" + (action == null ? "save" : action) + ")";
+            }
+        }
 
-				if (action.equals("test")) {
-					octaneConfiguration = OctaneSDK.getInstance().getConfigurationService().buildConfiguration(url, apiKey, secret);
-					returnStr = configurationService.checkConfiguration(octaneConfiguration);
-				} else if (action.equals("save")) {
-					if (url != null && !url.isEmpty()) {
-						octaneConfiguration = OctaneSDK.getInstance().getConfigurationService().buildConfiguration(url, apiKey, secret);
-					} else {
-						octaneConfiguration = dtoFactory.newDTO(OctaneConfiguration.class)
-								.setUrl("")
-								.setSharedSpace("")
-								.setApiKey(apiKey)
-								.setSecret(secret);
-					}
-					returnStr = updateConfiguration(octaneConfiguration, url);
-				}
-			} catch (Exception e) {
-				logger.error("failed to process configuration request (" + action + ")", e);
-				returnStr = e.getMessage();
-			}
-		}
+        PrintWriter writer;
+        try {
+            writer = httpServletResponse.getWriter();
+            writer.write(returnStr);
+        } catch (IOException ioe) {
+            logger.error("failed to write response", ioe);
+        }
+        return null;
+    }
 
-		PrintWriter writer;
-		try {
-			writer = httpServletResponse.getWriter();
-			writer.write(returnStr);
-		} catch (IOException ioe) {
-			logger.error("failed to write response", ioe);
-		}
-		return null;
-	}
+    private void handleDeletedConfigurations(List<OctaneConfigStructure> newConfigs) {
+        Map<String, OctaneConfiguration> origConfigs = holder.getOctaneConfigurations();
+        Set<String> configToRemove = new HashSet<>();
+        origConfigs.entrySet().forEach(entry -> {
+            boolean found = false;
+            for (OctaneConfigStructure newConfig : newConfigs) {
+                String identity = newConfig.getIdentity();
+                //new configuration
+                if (identity == null || identity.isEmpty() || "undefined".equalsIgnoreCase(identity)) {
+                    found = true;
+                    break;
+                }
 
-	public String updateConfiguration(OctaneConfiguration octaneConfiguration, String originalUrl) {
-		OctaneConfigStructure cfg = octaneTeamCityPlugin.getConfig();
-		cfg.setUiLocation(originalUrl);
-		cfg.setLocation(octaneConfiguration.getUrl());
-		cfg.setSharedSpace(octaneConfiguration.getSharedSpace());
-		cfg.setUsername(octaneConfiguration.getApiKey());
-		cfg.setSecretPassword(octaneConfiguration.getSecret());
-		configurationService.saveConfig(cfg);
-		OctaneSDK.getInstance().getConfigurationService().notifyChange();
-		return "Configuration updated successfully";
-	}
+                if (entry.getKey().equals(newConfig.getIdentity())) {
+                    found = true;
+                    break;
+                }
+            }
+            if (!found) {
+                OctaneConfiguration octaneConfiguration = entry.getValue();
+                if (octaneConfiguration != null) {
+                    logger.info("Removing client with instance Id: " + entry.getKey());
+                    OctaneSDK.removeClient(OctaneSDK.getClientByInstanceId(entry.getKey()));
+                    configToRemove.add(entry.getKey());
+                }
+            }
+        });
+        if (!configToRemove.isEmpty()) {
+            configToRemove.forEach(instanceId -> origConfigs.remove(instanceId));
+            //remove config before save
+            for (OctaneConfigStructure octaneConfigStructure : new ArrayList<>(holder.getConfigs())) {
+                if (configToRemove.contains(octaneConfigStructure.getIdentity())) {
+                    holder.getConfigs().remove(octaneConfigStructure);
+                }
+            }
+            save();
+        }
+    }
 
-	public String reloadConfiguration() {
-		try {
-			ObjectMapper mapper = new ObjectMapper();
-			OctaneConfigStructure cfg = octaneTeamCityPlugin.getConfig();
-			return mapper.writeValueAsString(cfg);
-		} catch (JsonProcessingException jpe) {
-			logger.error("failed to reload configuration", jpe);
-		}
-		return null;
-	}
+    private String save() {
+        logger.info("Saving ALM Octane configurations...");
+        OctaneConfigMultiSharedSpaceStructure confs = new OctaneConfigMultiSharedSpaceStructure();
+        confs.setMultiConfigStructure(holder.getConfigs());
+        return configurationService.saveConfig(confs);
+    }
+
+    public String updateConfiguration(List<OctaneConfigStructure> newConfigs) {
+        List<OctaneConfigStructure> originalConfigs = holder.getConfigs();
+        for (OctaneConfigStructure newConf : newConfigs) {
+            OctaneConfigStructure result = originalConfigs.stream()
+                    .filter(or_conf -> or_conf.getIdentity().equals(newConf.getIdentity()))
+                    .findAny()
+                    .orElse(null);
+            if (result == null) {
+                checkAndUpdateIdentityAndLocation(newConf);
+                OctaneConfiguration octaneConfiguration = new OctaneConfiguration(newConf.getIdentity(), newConf.getLocation(),
+                        newConf.getSharedSpace());
+                octaneConfiguration.setClient(newConf.getUsername());
+                octaneConfiguration.setSecret(newConf.getSecretPassword());
+                OctaneSDK.addClient(octaneConfiguration, TeamCityPluginServicesImpl.class);
+                holder.getOctaneConfigurations().put(newConf.getIdentity(), octaneConfiguration);
+                holder.getConfigs().add(newConf);
+            } else {
+                result.setUiLocation(newConf.getUiLocation());
+                result.setLocation(parseUiLocation(newConf.getUiLocation()));
+                result.setUsername(newConf.getUsername());
+                result.setSecretPassword(newConf.getSecretPassword());
+                result.setSharedSpace(newConf.getSharedSpace());
+             }
+        }
+        String status = save();
+        return status.isEmpty() ? "Configurations updated successfully" : status;
+    }
+
+    private void checkAndUpdateIdentityAndLocation(OctaneConfigStructure newConf) {
+        String identity = newConf.getIdentity();
+        if (identity == null || identity.equals("") || "undefined".equalsIgnoreCase(identity)) {
+            newConf.setIdentity(UUID.randomUUID().toString());
+            newConf.setIdentityFrom(String.valueOf(new Date().getTime()));
+        }
+        String location = parseUiLocation(newConf.getUiLocation());
+        newConf.setLocation(location);
+    }
+
+    public String reloadConfiguration() {
+        try {
+            ObjectMapper mapper = new ObjectMapper();
+            List<OctaneConfigStructure> cfg = holder.getConfigs();
+            return mapper.writeValueAsString(cfg);
+        } catch (JsonProcessingException jpe) {
+            logger.error("failed to reload configuration", jpe);
+            return "failed to reload configuration";
+        }
+    }
+
+    public String parseUiLocation(String uiLocation) {
+        int contextPos = uiLocation.indexOf("/ui");
+        if (contextPos < 0) {
+            return uiLocation;
+        } else {
+            return uiLocation.substring(0, contextPos);
+        }
+    }
 }

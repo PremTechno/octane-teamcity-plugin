@@ -16,25 +16,33 @@
   -->
 
 <beans default-autowire="constructor"
-	   xsi:schemaLocation=" http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd"
-	   xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans">
+       xsi:schemaLocation=" http://www.springframework.org/schema/beans http://www.springframework.org/schema/beans/spring-beans-3.0.xsd"
+       xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans">
 
-	<!-- MAIN -->
-	<bean class="com.hp.octane.plugins.jetbrains.teamcity.OctaneTeamCityPlugin"/>
-	<bean class="com.hp.octane.plugins.jetbrains.teamcity.TeamCityPluginServicesImpl"/>
-	<bean class="com.hp.octane.plugins.jetbrains.teamcity.factories.ModelCommonFactory"/>
-	<bean class="com.hp.octane.plugins.jetbrains.teamcity.factories.SnapshotsFactory"/>
-	<bean class="com.hp.octane.plugins.jetbrains.teamcity.factories.ParametersFactory"/>
-	<bean class="com.hp.octane.plugins.jetbrains.teamcity.actions.GenericOctaneActionsController"/>
+    <!-- MAIN -->
+    <bean id ="cityPlugin" name="cityPlugin" class="com.hp.octane.plugins.jetbrains.teamcity.OctaneTeamCityPlugin"/>
+    <bean id="springContextBridgedServices" class="com.hp.octane.plugins.jetbrains.teamcity.utils.SpringContextBridge"/>
 
-	<!-- CONFIGURATION -->
-	<bean class="com.hp.octane.plugins.jetbrains.teamcity.configuration.TCConfigurationService"/>
-	<bean class="com.hp.octane.plugins.jetbrains.teamcity.configuration.OctaneConfigurationPage"/>
-	<bean class="com.hp.octane.plugins.jetbrains.teamcity.actions.ConfigurationActionsController"/>
+    <!--<bean id="cityPluginServices" name="cityPluginServices" class="com.hp.octane.plugins.jetbrains.teamcity.TeamCityPluginServicesImpl"/>-->
+    <bean id="commonFactory" name="commonFactory" class="com.hp.octane.plugins.jetbrains.teamcity.factories.ModelCommonFactory"/>
+    <bean id="snapshotsFactory" name="snapshotsFactory" class="com.hp.octane.plugins.jetbrains.teamcity.factories.SnapshotsFactory"/>
+    <bean id="parametersFactory" name="parametersFactory" class="com.hp.octane.plugins.jetbrains.teamcity.factories.ParametersFactory"/>
+    <bean id="genericOctaneActionsController" name="genericOctaneActionsController"
+          class="com.hp.octane.plugins.jetbrains.teamcity.actions.GenericOctaneActionsController"/>
 
-	<!-- EVENTS -->
-	<bean class="com.hp.octane.plugins.jetbrains.teamcity.events.ProgressEventsListener"/>
+    <!-- CONFIGURATION -->
+    <bean id="tcConfigurationService" name="tcConfigurationService"
+          class="com.hp.octane.plugins.jetbrains.teamcity.configuration.TCConfigurationService"/>
+    <bean id="octaneConfigurationPage" name="octaneConfigurationPage"
+          class="com.hp.octane.plugins.jetbrains.teamcity.configuration.OctaneConfigurationPage"/>
+    <bean id="configurationActionsController" name="configurationActionsController"
+          class="com.hp.octane.plugins.jetbrains.teamcity.actions.ConfigurationActionsController"/>
+    <bean id="tcConfigurationHolder" name="tcConfigurationHolder"
+          class="com.hp.octane.plugins.jetbrains.teamcity.configuration.TCConfigurationHolder"/>
 
-	<!-- TESTS -->
-	<bean class="com.hp.octane.plugins.jetbrains.teamcity.tests.TestsResultEventsListener"/>
+    <!-- EVENTS -->
+    <bean id="progressEventsListener" name="progressEventsListener" class="com.hp.octane.plugins.jetbrains.teamcity.events.ProgressEventsListener"/>
+
+    <!-- TESTS -->
+    <bean id = "testsResultEventsListener" name = "testsResultEventsListener" class="com.hp.octane.plugins.jetbrains.teamcity.tests.TestsResultEventsListener"/>
 </beans>
