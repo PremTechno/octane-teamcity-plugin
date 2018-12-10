@@ -16,6 +16,8 @@
 
 package com.hp.octane.plugins.jetbrains.teamcity.configuration;
 
+import jetbrains.buildServer.serverSide.crypt.EncryptUtil;
+
 import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
@@ -77,10 +79,16 @@ public class OctaneConfigStructure {
 	}
 
 	public String getSecretPassword() {
+		if(secretPassword != null && !secretPassword.isEmpty()) {
+			secretPassword = EncryptUtil.isScrambled(secretPassword) ? EncryptUtil.unscramble(secretPassword) : secretPassword;
+		}
 		return secretPassword;
 	}
 
 	public void setSecretPassword(String secretPassword) {
+		if(secretPassword != null && !secretPassword.isEmpty()) {
+			secretPassword = EncryptUtil.isScrambled(secretPassword) ? secretPassword : EncryptUtil.scramble(secretPassword);
+		}
 		this.secretPassword = secretPassword;
 	}
 
