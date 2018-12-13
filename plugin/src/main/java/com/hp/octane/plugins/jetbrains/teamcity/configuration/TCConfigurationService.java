@@ -39,6 +39,8 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 
+import static com.hp.octane.plugins.jetbrains.teamcity.utils.Utils.buildResponseStringEmptyConfigs;
+
 /**
  * Created by lazara.
  * Created by gadiel.
@@ -63,7 +65,7 @@ public class TCConfigurationService {
                     octaneConfiguration.getSecret(),
                     TeamCityPluginServicesImpl.class);
         } catch (Exception e) {
-            return"Connection failed: " + e.getMessage();
+            return buildResponseStringEmptyConfigs("Connection failed: " + e.getMessage());
         }
 
         if (result.getStatus() == HttpStatus.SC_OK) {
@@ -77,7 +79,7 @@ public class TCConfigurationService {
         } else {
             resultMessage = "Validation failed for unknown reason; status code: " + result.getStatus();
         }
-        return resultMessage;
+        return buildResponseStringEmptyConfigs(resultMessage);
     }
 
     public List<OctaneConfigStructure> readConfig() {
@@ -118,13 +120,21 @@ public class TCConfigurationService {
             m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
             m.marshal(configs, getConfigurationResource());
             OctaneSDK.getClients().forEach(octaneClient -> octaneClient.getConfigurationService().notifyChange());
-            return "";
+            int index = 0;
+            String result = "{\"configs\":{";
+            for (OctaneConfigStructure conf : configs.getMultiConfigStructure()) {
+                result += "\"" + index + "\" : \"" + conf.getIdentity() + "\",";
+                index++;
+            }
+            result = configs.getMultiConfigStructure().isEmpty() ? result : result.substring(0, result.length() - 1);
+            result += "}, \"status\":\"Configurations updated successfully\"}";
+            return result;
         } catch (JAXBException jaxbe) {
             logger.error("failed to save Octane configurations", jaxbe);
-            return "failed to save Octane configurations";
+            return buildResponseStringEmptyConfigs("failed to save Octane configurations");
         } catch (IllegalStateException e) {
             logger.error("faild to publish Octane configurations", e);
-            return "faild to publish Octane configurations";
+            return buildResponseStringEmptyConfigs("failed to publish Octane configurations");
         }
     }
 

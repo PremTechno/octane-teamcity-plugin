@@ -39,6 +39,8 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.util.*;
 
+import static com.hp.octane.plugins.jetbrains.teamcity.utils.Utils.buildResponseStringEmptyConfigs;
+
 /**
  * Created by lazara on 14/02/2016.
  */
@@ -83,6 +85,7 @@ public class ConfigurationActionsController implements Controller {
             } catch (Exception e) {
                 logger.error("failed to process configuration request (" + (action == null ? "save" : action) + ")", e);
                 returnStr = e.getMessage() + ". Failed to process configuration request (" + (action == null ? "save" : action) + ")";
+                returnStr = buildResponseStringEmptyConfigs(returnStr);
             }
         }
 
@@ -155,7 +158,11 @@ public class ConfigurationActionsController implements Controller {
                         newConf.getSharedSpace());
                 octaneConfiguration.setClient(newConf.getUsername());
                 octaneConfiguration.setSecret(newConf.getSecretPassword());
-                OctaneSDK.addClient(octaneConfiguration, TeamCityPluginServicesImpl.class);
+                try {
+                    OctaneSDK.addClient(octaneConfiguration, TeamCityPluginServicesImpl.class);
+                }catch (Exception e){
+                   return  buildResponseStringEmptyConfigs(e.getMessage());
+                }
                 holder.getOctaneConfigurations().put(newConf.getIdentity(), octaneConfiguration);
                 holder.getConfigs().add(newConf);
             } else {
@@ -166,8 +173,8 @@ public class ConfigurationActionsController implements Controller {
                 result.setSharedSpace(newConf.getSharedSpace());
              }
         }
-        String status = save();
-        return status.isEmpty() ? "Configurations updated successfully" : status;
+        String result = save();
+        return result;
     }
 
     private void checkAndUpdateIdentityAndLocation(OctaneConfigStructure newConf) {
