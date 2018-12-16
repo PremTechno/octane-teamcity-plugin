@@ -39,7 +39,10 @@
     <script>
         function getConfCount() {
             var count = document.getElementsByName("spConfigTable").length - 1;
-            return count;
+            if (count < 0) {
+                return count;
+            }
+            return document.getElementsByClassName("runnerFormTable")[count].id.match(/\d+/g).map(Number)[0];
         }
 
         function addNewSP() {
@@ -120,8 +123,13 @@
             xhttp.onreadystatechange = function () {
 
                 if (xhttp.readyState == 4) {
-                    if (xhttp.status == 200)
-                        message_box_div.innerHTML = xhttp.responseText;
+                    if (xhttp.status == 200) {
+                        var data = JSON.parse(xhttp.responseText);
+                        for (var i in data.configs) {
+                            document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > input[name^='instanceId']")[0].value = data.configs[i];
+                        }
+                        message_box_div.innerHTML = data.status;
+                    }
                     else
                         message_box_div.innerHTML = "Error"
                 } else {
@@ -130,13 +138,14 @@
             };
 
             var config = [];
-
-            for (var i = 0; i <= getConfCount(); i++) {
-                var server = document.getElementById("server" + i).value;
-                var username = document.getElementById("username" + i).value;
-                var password = document.getElementById("password" + i).value;
-                var sp = document.getElementById("sharedSpace" + i).value;
-                var instanceId = document.getElementById("instanceId" + i).value;
+            var length = document.getElementsByClassName("runnerFormTable").length;
+            var i;
+            for (i = 0; i < length; i++) {
+                var password = document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > td > input[name^='password']")[0].value;
+                var username = document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > td > input[name^='username']")[0].value;
+                var server = document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > td > input[name^='server']")[0].value;
+                var sp = document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > td > input[name^='sharedSpace']")[0].value;
+                var instanceId = document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > input[name^='instanceId']")[0].value;
 
                 config.push(
                     {
@@ -151,8 +160,6 @@
             // var parameters = "action=save";
             xhttp.open("POST", getServletURL(), true);
             xhttp.setRequestHeader('Content-type', 'application/json; charset=utf-8');
-
-            //xhttp.send(parameters);
             xhttp.send(JSON.stringify(config));
         }
 
@@ -177,10 +184,8 @@
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
                 if (xhttp.readyState == 4) {
-                    if (xhttp.status == 200)
-                        message_box_div.innerHTML = xhttp.responseText;
-                    else
-                        message_box_div.innerHTML = "Error";
+                    var data = JSON.parse(xhttp.responseText);
+                    message_box_div.innerHTML = data.status;
                 } else {
                     message_box_div.innerHTML = "Waiting...";
                 }
