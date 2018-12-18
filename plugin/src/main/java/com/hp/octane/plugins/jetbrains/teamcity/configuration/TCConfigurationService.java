@@ -119,7 +119,6 @@ public class TCConfigurationService {
             Marshaller m = context.createMarshaller();
             m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
             m.marshal(configs, getConfigurationResource());
-            OctaneSDK.getClients().forEach(octaneClient -> octaneClient.getConfigurationService().notifyChange());
             int index = 0;
             String result = "{\"configs\":{";
             for (OctaneConfigStructure conf : configs.getMultiConfigStructure()) {
