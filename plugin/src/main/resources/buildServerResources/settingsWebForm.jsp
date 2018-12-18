@@ -21,7 +21,7 @@
         function loadDoc() {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
-                if (xhttp.readyState == 4 && xhttp.status == 200) {
+                if (xhttp.readyState === 4 && xhttp.status === 200) {
                     // alert(xhttp.responseText);
                     var json = JSON.parse(xhttp.responseText);
                     for (i = 0; i < json.length; i++) {
@@ -122,8 +122,8 @@
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
 
-                if (xhttp.readyState == 4) {
-                    if (xhttp.status == 200) {
+                if (xhttp.readyState === 4) {
+                    if (xhttp.status === 200) {
                         var data = JSON.parse(xhttp.responseText);
                         for (var i in data.configs) {
                             document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > input[name^='instanceId']")[0].value = data.configs[i];
@@ -183,7 +183,7 @@
         function checkConnection(index) {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
-                if (xhttp.readyState == 4) {
+                if (xhttp.readyState === 4) {
                     var data = JSON.parse(xhttp.responseText);
                     message_box_div.innerHTML = data.status;
                 } else {

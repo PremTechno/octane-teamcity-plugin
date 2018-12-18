@@ -22,6 +22,7 @@ import javax.xml.bind.annotation.XmlAccessType;
 import javax.xml.bind.annotation.XmlAccessorType;
 import javax.xml.bind.annotation.XmlElement;
 import javax.xml.bind.annotation.XmlRootElement;
+import java.util.Objects;
 
 @XmlRootElement(name = "octane-config")
 @XmlAccessorType(XmlAccessType.NONE)
@@ -118,5 +119,21 @@ public class OctaneConfigStructure {
 				", secret: " + secretPassword +
 				", location: " + location +
 				", sharedSpace: " + sharedSpace + '}';
+	}
+
+	@Override
+	public boolean equals(Object o) {
+		if (this == o) return true;
+		if (o == null || getClass() != o.getClass()) return false;
+		OctaneConfigStructure that = (OctaneConfigStructure) o;
+		return Objects.equals(location, that.location) &&
+				Objects.equals(username, that.username) &&
+				Objects.equals(getSecretPassword(), that.getSecretPassword()) &&
+				Objects.equals(sharedSpace, that.sharedSpace);
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(uiLocation, username, getSecretPassword(), sharedSpace);
 	}
 }

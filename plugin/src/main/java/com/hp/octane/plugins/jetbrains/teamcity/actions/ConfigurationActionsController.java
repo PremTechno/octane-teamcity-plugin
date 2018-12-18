@@ -153,7 +153,7 @@ public class ConfigurationActionsController implements Controller {
                     .findAny()
                     .orElse(null);
             if (result == null) {
-                checkAndUpdateIdentityAndLocation(newConf);
+                checkAndUpdateIdentityAndLocationIfNotTheSame(newConf);
                 OctaneConfiguration octaneConfiguration = new OctaneConfiguration(newConf.getIdentity(), newConf.getLocation(),
                         newConf.getSharedSpace());
                 octaneConfiguration.setClient(newConf.getUsername());
@@ -166,25 +166,41 @@ public class ConfigurationActionsController implements Controller {
                 holder.getOctaneConfigurations().put(newConf.getIdentity(), octaneConfiguration);
                 holder.getConfigs().add(newConf);
             } else {
+                //update existing configuration
+                OctaneConfiguration octaneConfiguration = holder.getOctaneConfigurations().get(result.getIdentity());
+                octaneConfiguration.setUrl(newConf.getUiLocation());
                 result.setUiLocation(newConf.getUiLocation());
-                result.setLocation(parseUiLocation(newConf.getUiLocation()));
+                octaneConfiguration.setClient(newConf.getUsername());
                 result.setUsername(newConf.getUsername());
+                octaneConfiguration.setSecret(newConf.getSecretPassword());
                 result.setSecretPassword(newConf.getSecretPassword());
+                octaneConfiguration.setSharedSpace(newConf.getSharedSpace());
                 result.setSharedSpace(newConf.getSharedSpace());
+                result.setLocation(parseUiLocation(newConf.getUiLocation()));
              }
         }
-        String result = save();
-        return result;
+
+        return save();
     }
 
-    private void checkAndUpdateIdentityAndLocation(OctaneConfigStructure newConf) {
+    private void checkAndUpdateIdentityAndLocationIfNotTheSame(OctaneConfigStructure newConf) {
         String identity = newConf.getIdentity();
+        String location = parseUiLocation(newConf.getUiLocation());
+        newConf.setLocation(location);
+        if (holder.getConfigs().contains(newConf)){
+            OctaneConfigStructure matchingObject = holder.getConfigs().stream().
+                    filter(c -> c.equals(newConf)).
+                    findAny().orElse(null);
+            if (matchingObject != null){
+                newConf.setIdentity(matchingObject.getIdentity());
+                newConf.setIdentityFrom(matchingObject.getIdentityFrom());
+                return;
+            }
+        }
         if (identity == null || identity.equals("") || "undefined".equalsIgnoreCase(identity)) {
             newConf.setIdentity(UUID.randomUUID().toString());
             newConf.setIdentityFrom(String.valueOf(new Date().getTime()));
         }
-        String location = parseUiLocation(newConf.getUiLocation());
-        newConf.setLocation(location);
     }
 
     public String reloadConfiguration() {

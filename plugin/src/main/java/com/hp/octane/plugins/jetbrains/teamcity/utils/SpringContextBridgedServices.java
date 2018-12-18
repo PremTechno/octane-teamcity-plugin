@@ -7,9 +7,12 @@ import jetbrains.buildServer.serverSide.SBuildServer;
 
 public interface SpringContextBridgedServices {
 
-    public ProjectManager getProjectManager();
-    public SBuildServer getSBuildServer();
-    public ModelCommonFactory getModelCommonFactory();
-    public SnapshotsFactory getSnapshotsFactory();
+	ProjectManager getProjectManager();
+
+	SBuildServer getSBuildServer();
+
+	ModelCommonFactory getModelCommonFactory();
+
+	SnapshotsFactory getSnapshotsFactory();
 
 }
