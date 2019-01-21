@@ -25,7 +25,7 @@
                     // alert(xhttp.responseText);
                     var json = JSON.parse(xhttp.responseText);
                     for (i = 0; i < json.length; i++) {
-                        addSP(i, json[i].uiLocation, json[i].username, json[i].secretPassword, json[i].identity, json[i].sharedSpace);
+                        addSP(i, json[i].uiLocation, json[i].username, json[i].secretPassword, json[i].identity);
                     }
                 }
             };
@@ -46,10 +46,10 @@
         }
 
         function addNewSP() {
-            addSP(getConfCount() + 1, '', '', '', '', '');
+            addSP(getConfCount() + 1, '', '', '', '');
         }
 
-        function addSP(index, server, clientId, clientSecret, instanceId, sharedSpace) {
+        function addSP(index, server, clientId, clientSecret, instanceId) {
             // alert(index + ', ' + server + ', ' + clientId + ', ' + clientSecret + ', ' + instanceId + ', ' + sharedSpace);
             var spBlock = "<table name='spConfigTable' class='runnerFormTable' id='connectionsTable" + index + "' >" +
                 "<tr>" +
@@ -79,15 +79,6 @@
                 "</td>" +
                 "</tr>" +
 
-                "<tr  >" +
-                "<th><label for='password'>Shared Space <span class='mandatoryAsterix' title='Mandatory field'>*</span></label></th>" +
-                "<td>" +
-                "<input type='password' name='sharedSpace" + index + "' id='sharedSpace" + index + "'   value='' class='longField'>" +
-                "<span class='error' id='errorSharedSpace" + index + "'></span>" +
-                "<span style='font-size: xx-small;'>Shared space used for logging into the ALM Octane server</span>" +
-                "</td>" +
-                "</tr>" +
-
                 "<tr>" +
                 "<input type='hidden' name='instanceId" + index + "' id='instanceId" + index + "'   value=''>" +
                 "</tr>" +
@@ -108,7 +99,6 @@
             document.getElementById("password" + index).value = clientSecret;
             document.getElementById("server" + index).value = server;
             document.getElementById("instanceId" + index).value = instanceId;
-            document.getElementById("sharedSpace" + index).value = sharedSpace;
         }
 
         function htmlToElement(html) {
@@ -144,7 +134,6 @@
                 var password = document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > td > input[name^='password']")[0].value;
                 var username = document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > td > input[name^='username']")[0].value;
                 var server = document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > td > input[name^='server']")[0].value;
-                var sp = document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > td > input[name^='sharedSpace']")[0].value;
                 var instanceId = document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > input[name^='instanceId']")[0].value;
 
                 config.push(
@@ -152,7 +141,6 @@
                         "uiLocation": server,
                         "username": username,
                         "secretPassword": password,
-                        "sharedSpace": sp,
                         "identity": instanceId
                     }
                 );
@@ -195,8 +183,7 @@
             var username = encodeURIComponent(document.getElementById("username" + index).value);
             var password = encodeURIComponent(document.getElementById("password" + index).value);
             var instanceId = encodeURIComponent(document.getElementById("instanceId" + index).value);
-            var sharedSpace = encodeURIComponent(document.getElementById("sharedSpace" + index).value);
-            var parameters = "action=test&server=" + server + "&username=" + username + "&password=" + password + "&instanceId=" + instanceId + "&sharedSpace=" + sharedSpace;
+            var parameters = "action=test&server=" + server + "&username=" + username + "&password=" + password + "&instanceId=" + instanceId ;
 
             xhttp.open("POST", getServletURL(), true);
             xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
