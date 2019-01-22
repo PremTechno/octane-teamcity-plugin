@@ -51,7 +51,7 @@ import java.util.*;
 public class TeamCityPluginServicesImpl extends CIPluginServices {
 	private static final Logger log = LogManager.getLogger(TeamCityPluginServicesImpl.class);
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
-	private static final String pluginVersion = "1.3.0";
+	private static final String pluginVersion = "1.3.1";
 
 	private ProjectManager projectManager;
 	private SBuildServer sBuildServer;
