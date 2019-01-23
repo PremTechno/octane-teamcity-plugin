@@ -4,6 +4,7 @@ import com.hp.octane.plugins.jetbrains.teamcity.factories.ModelCommonFactory;
 import com.hp.octane.plugins.jetbrains.teamcity.factories.SnapshotsFactory;
 import jetbrains.buildServer.serverSide.ProjectManager;
 import jetbrains.buildServer.serverSide.SBuildServer;
+import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -19,6 +20,8 @@ public class SpringContextBridge implements SpringContextBridgedServices, Applic
     ModelCommonFactory modelCommonFactory;
     @Autowired
     SnapshotsFactory snapshotsFactory;
+    @Autowired
+    private PluginDescriptor pluginDescriptor;
 
     public void setApplicationContext(ApplicationContext context) throws BeansException {
         this.context = context;
@@ -44,7 +47,12 @@ public class SpringContextBridge implements SpringContextBridgedServices, Applic
         return snapshotsFactory;
     }
 
-    public static SpringContextBridgedServices services() {
+	@Override
+	public PluginDescriptor getPluginDescriptor() {
+		return pluginDescriptor;
+	}
+
+	public static SpringContextBridgedServices services() {
         return context.getBean(SpringContextBridgedServices.class);
     }
 }

@@ -35,6 +35,7 @@ import com.hp.octane.plugins.jetbrains.teamcity.factories.SnapshotsFactory;
 import com.hp.octane.plugins.jetbrains.teamcity.utils.SpringContextBridge;
 import jetbrains.buildServer.Build;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -51,18 +52,19 @@ import java.util.*;
 public class TeamCityPluginServicesImpl extends CIPluginServices {
 	private static final Logger log = LogManager.getLogger(TeamCityPluginServicesImpl.class);
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
-	private static final String pluginVersion = "1.3.1";
 
 	private ProjectManager projectManager;
 	private SBuildServer sBuildServer;
 	private ModelCommonFactory modelCommonFactory;
 	private SnapshotsFactory snapshotsFactory;
+	private PluginDescriptor pluginDescriptor;
 
 	public TeamCityPluginServicesImpl() {
 		projectManager = SpringContextBridge.services().getProjectManager();
 		sBuildServer = SpringContextBridge.services().getSBuildServer();
 		modelCommonFactory = SpringContextBridge.services().getModelCommonFactory();
 		snapshotsFactory = SpringContextBridge.services().getSnapshotsFactory();
+		pluginDescriptor = SpringContextBridge.services().getPluginDescriptor();
 	}
 
 	@Override
@@ -71,13 +73,13 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 				.setSendingTime(System.currentTimeMillis())
 				.setType(CIServerTypes.TEAMCITY.value())
 				.setUrl(sBuildServer.getRootUrl())
-				.setVersion(pluginVersion);
+				.setVersion(pluginDescriptor.getPluginVersion());
 	}
 
 	@Override
 	public CIPluginInfo getPluginInfo() {
 		return dtoFactory.newDTO(CIPluginInfo.class)
-				.setVersion(pluginVersion);
+				.setVersion(pluginDescriptor.getPluginVersion());
 	}
 
 	@Override
