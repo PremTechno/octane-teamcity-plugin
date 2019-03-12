@@ -64,8 +64,6 @@ public class OctaneTeamCityPlugin implements ServerExtension {
     @Autowired
     private SpringContextBridge springContextBridge;
 
-    private static String rootServerUrl = null;
-
     @PostConstruct
     private void initPlugin() throws Exception {
         buildServer.registerExtension(ServerExtension.class, PLUGIN_NAME, this);
@@ -132,17 +130,4 @@ public class OctaneTeamCityPlugin implements ServerExtension {
             configurationService.saveConfig(confs);
         }
     }
-
-    public static void setRootURL(String rootUrl) {
-        if (rootUrl != null && !rootUrl.isEmpty()) {
-            rootServerUrl = rootUrl;
-            if (rootUrl.endsWith("/")) {
-                rootServerUrl = rootUrl.substring(0, rootUrl.length() - 1);
-            }
-        }
-    }
-
-	public String getServerUrl(){
-		return rootServerUrl;
-	}
 }

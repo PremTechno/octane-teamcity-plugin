@@ -138,11 +138,6 @@ public class ProgressEventsListener extends BuildServerAdapter {
         OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(event));
     }
 
-    @Override
-    public void serverStartup() {
-        OctaneTeamCityPlugin.setRootURL(buildServer.getRootUrl());
-    }
-
     private void updateBuildTriggerCause(TriggeredBy triggeredBy, List<CIEventCause> causes) {
         if (triggeredBy.getParameters().containsKey(TRIGGER_BUILD_TYPE_KEY)) {
             String rootBuildTypeId = triggeredBy.getParameters().get(TRIGGER_BUILD_TYPE_KEY);
