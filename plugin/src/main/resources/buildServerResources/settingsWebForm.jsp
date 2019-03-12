@@ -21,11 +21,12 @@
         function loadDoc() {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
-                if (xhttp.readyState === 4 && xhttp.status === 200) {
-                    // alert(xhttp.responseText);
-                    var json = JSON.parse(xhttp.responseText);
-                    for (i = 0; i < json.length; i++) {
-                        addSP(i, json[i].uiLocation, json[i].username, json[i].secretPassword, json[i].identity);
+                if (xhttp.readyState === 4) {
+                    if (xhttp.status === 200) {
+                        var json = JSON.parse(xhttp.responseText);
+                        for (var i = 0; i < json.length; i++) {
+                            addSP(i, json[i].uiLocation, json[i].username, json[i].secretPassword, json[i].identity);
+                        }
                     }
                 }
             };
@@ -119,9 +120,9 @@
                             document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > input[name^='instanceId']")[0].value = data.configs[i];
                         }
                         message_box_div.innerHTML = data.status;
+                    } else {
+                        message_box_div.innerHTML = "Error";
                     }
-                    else
-                        message_box_div.innerHTML = "Error"
                 } else {
                     message_box_div.innerHTML = "Saving...";
                 }
@@ -152,11 +153,7 @@
         }
 
         function getServletURL() {
-            var rootURL = "${conf.getServerUrl()}";
-            if (!rootURL) {
-                return "/octane-rest/";
-            }
-            return rootURL + "/octane-rest/";
+            return "/octane-rest/";
         }
 
     </script>
@@ -172,18 +169,25 @@
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
                 if (xhttp.readyState === 4) {
-                    var data = JSON.parse(xhttp.responseText);
-                    message_box_div.innerHTML = data.status;
+                    if (xhttp.status === 200) {
+                        try {
+                            var data = JSON.parse(xhttp.responseText);
+                            message_box_div.innerHTML = data.status;
+                        } catch (e) {
+                            message_box_div.innerHTML = 'Failed to parse response: ' + xhttp.responseText;
+                        }
+                    } else {
+                        message_box_div.innerHTML = 'Request to TeamCity server failed with status ' + xhttp.status + ' (' + xhttp.responseText + ')';
+                    }
                 } else {
-                    message_box_div.innerHTML = "Waiting...";
+                    message_box_div.innerHTML = 'Waiting...';
                 }
-
             };
             var server = encodeURIComponent(document.getElementById("server" + index).value);
             var username = encodeURIComponent(document.getElementById("username" + index).value);
             var password = encodeURIComponent(document.getElementById("password" + index).value);
             var instanceId = encodeURIComponent(document.getElementById("instanceId" + index).value);
-            var parameters = "action=test&server=" + server + "&username=" + username + "&password=" + password + "&instanceId=" + instanceId ;
+            var parameters = "action=test&server=" + server + "&username=" + username + "&password=" + password + "&instanceId=" + instanceId;
 
             xhttp.open("POST", getServletURL(), true);
             xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
