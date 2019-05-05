@@ -42,7 +42,8 @@ public class ParametersFactory {
 				tmp = dtoFactory.newDTO(CIParameter.class)
 						.setType(CIParameterType.STRING)
 						.setName(parameter.getKey())
-						.setDescription("Value location: " + parameter.getValue());
+						.setDescription("Value location: " + parameter.getValue())
+						.setValue(parameter.getValue());
 				result.add(tmp);
 			}
 		}

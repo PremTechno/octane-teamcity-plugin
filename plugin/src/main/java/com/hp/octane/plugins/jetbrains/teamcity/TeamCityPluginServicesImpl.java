@@ -106,7 +106,7 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 
 	@Override
 	public CIJobsList getJobsList(boolean includeParameters) {
-		return modelCommonFactory.CreateProjectList();
+		return modelCommonFactory.createProjectList();
 	}
 
 	@Override

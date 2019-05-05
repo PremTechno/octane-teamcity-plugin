@@ -44,7 +44,7 @@ public class ModelCommonFactory {
     @Autowired
     private ProjectManager projectManager;
 
-    public CIJobsList CreateProjectList() {
+    public CIJobsList createProjectList() {
         CIJobsList ciJobsList = dtoFactory.newDTO(CIJobsList.class);
         List<PipelineNode> list = new ArrayList<>();
         List<String> ids = new ArrayList<>();
@@ -58,7 +58,8 @@ public class ModelCommonFactory {
                     ids.add(buildType.getInternalId());
                     buildConf = dtoFactory.newDTO(PipelineNode.class)
                             .setJobCiId(buildType.getExternalId())
-                            .setName(buildType.getName());
+                            .setName(buildType.getName())
+                            .setParameters(parametersFactory.obtainFromBuildType(buildType));
                     list.add(buildConf);
                 }
             }
