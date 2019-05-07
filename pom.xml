@@ -58,6 +58,7 @@
         <nexus-staging-maven-plugin.version>1.6.7</nexus-staging-maven-plugin.version>
         <maven-javadoc-plugin.version>2.10.4</maven-javadoc-plugin.version>
         <maven-source-plugin.version>2.2.1</maven-source-plugin.version>
+        <commons-lang3.version>3.3.2</commons-lang3.version>
     </properties>
 
     <repositories>

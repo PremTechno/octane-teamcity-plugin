@@ -28,7 +28,6 @@ import com.hp.octane.plugins.jetbrains.teamcity.configuration.OctaneConfigMultiS
 import com.hp.octane.plugins.jetbrains.teamcity.configuration.OctaneConfigStructure;
 import com.hp.octane.plugins.jetbrains.teamcity.configuration.TCConfigurationHolder;
 import com.hp.octane.plugins.jetbrains.teamcity.configuration.TCConfigurationService;
-import com.hp.octane.plugins.jetbrains.teamcity.utils.SpringContextBridge;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.serverSide.ServerExtension;
 import jetbrains.buildServer.web.openapi.WebControllerManager;
@@ -37,6 +36,7 @@ import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -61,8 +61,6 @@ public class OctaneTeamCityPlugin implements ServerExtension {
     private TCConfigurationHolder holder;
     @Autowired
     private SBuildServer buildServer;
-    @Autowired
-    private SpringContextBridge springContextBridge;
 
     @PostConstruct
     private void initPlugin() throws Exception {
@@ -95,6 +93,14 @@ public class OctaneTeamCityPlugin implements ServerExtension {
             holder.getOctaneConfigurations().put(config.getIdentity(), octaneConfiguration);
         }
         logger.info("ALM Octane CI Plugin initialized; current configurations: " + holder.getConfigs().stream().map(Object::toString).collect(Collectors.joining(",")));
+    }
+
+    @PreDestroy
+    public void cleanUp() {
+        logger.info("ALM Octane CI Plugin destroyed; current configurations: " + holder.getConfigs().stream().map(Object::toString).collect(Collectors.joining(",")));
+        for (OctaneConfiguration config : holder.getOctaneConfigurations().values()) {
+            OctaneSDK.removeClient(OctaneSDK.getClientByInstanceId(config.getInstanceId()));
+        }
     }
 
     private List<OctaneConfigStructure> validateLoadedConfigurations(List<OctaneConfigStructure> configs) {
