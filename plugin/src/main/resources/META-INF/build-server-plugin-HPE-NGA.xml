@@ -20,10 +20,9 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans">
 
     <!-- MAIN -->
-    <bean id ="cityPlugin" name="cityPlugin" class="com.hp.octane.plugins.jetbrains.teamcity.OctaneTeamCityPlugin"/>
+    <bean id ="cityPlugin" name="cityPlugin" class="com.hp.octane.plugins.jetbrains.teamcity.OctaneTeamCityPlugin" depends-on="springContextBridgedServices"/>
     <bean id="springContextBridgedServices" class="com.hp.octane.plugins.jetbrains.teamcity.utils.SpringContextBridge"/>
 
-    <!--<bean id="cityPluginServices" name="cityPluginServices" class="com.hp.octane.plugins.jetbrains.teamcity.TeamCityPluginServicesImpl"/>-->
     <bean id="commonFactory" name="commonFactory" class="com.hp.octane.plugins.jetbrains.teamcity.factories.ModelCommonFactory"/>
     <bean id="snapshotsFactory" name="snapshotsFactory" class="com.hp.octane.plugins.jetbrains.teamcity.factories.SnapshotsFactory"/>
     <bean id="parametersFactory" name="parametersFactory" class="com.hp.octane.plugins.jetbrains.teamcity.factories.ParametersFactory"/>

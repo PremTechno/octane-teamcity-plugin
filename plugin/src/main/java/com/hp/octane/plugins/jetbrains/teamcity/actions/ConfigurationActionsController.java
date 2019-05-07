@@ -24,6 +24,7 @@ import com.hp.octane.integrations.OctaneConfiguration;
 import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.plugins.jetbrains.teamcity.TeamCityPluginServicesImpl;
 import com.hp.octane.plugins.jetbrains.teamcity.configuration.*;
+import com.hp.octane.plugins.jetbrains.teamcity.utils.Utils;
 import org.apache.http.NameValuePair;
 import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.logging.log4j.LogManager;
@@ -42,7 +43,7 @@ import java.net.URISyntaxException;
 import java.net.URL;
 import java.util.*;
 
-import static com.hp.octane.plugins.jetbrains.teamcity.utils.Utils.buildResponseStringEmptyConfigs;
+import static com.hp.octane.plugins.jetbrains.teamcity.utils.Utils.buildResponseStringEmptyConfigsWithError;
 
 /**
  * Created by lazara on 14/02/2016.
@@ -69,7 +70,7 @@ public class ConfigurationActionsController implements Controller {
 					String server = httpServletRequest.getParameter("server");
 					MqmProject project = parseUiLocation(server);
 					if (project.hasError()) {
-						returnStr = buildResponseStringEmptyConfigs(project.getErrorMsg());
+						returnStr = buildResponseStringEmptyConfigsWithError(project.getErrorMsg());
 					} else {
 						String apiKey = httpServletRequest.getParameter("username");
 						String secret = httpServletRequest.getParameter("password");
@@ -79,7 +80,8 @@ public class ConfigurationActionsController implements Controller {
 								project.getSharedSpace());
 						testedOctaneConfiguration.setClient(apiKey);
 						testedOctaneConfiguration.setSecret(secret);
-						returnStr = configurationService.checkConfiguration(testedOctaneConfiguration);
+						String impersonatedUser = httpServletRequest.getParameter("impersonatedUser");
+						returnStr = configurationService.checkConfiguration(testedOctaneConfiguration, impersonatedUser);
 					}
 				} else {
 					//save configuration
@@ -94,7 +96,7 @@ public class ConfigurationActionsController implements Controller {
 			} catch (Exception e) {
 				logger.error("failed to process configuration request (" + (action == null ? "save" : action) + ")", e);
 				returnStr = e.getMessage() + ". Failed to process configuration request (" + (action == null ? "save" : action) + ")";
-				returnStr = buildResponseStringEmptyConfigs(returnStr);
+				returnStr = buildResponseStringEmptyConfigsWithError(returnStr);
 			}
 		}
 
@@ -157,7 +159,7 @@ public class ConfigurationActionsController implements Controller {
 				MqmProject project = checkAndUpdateIdentityAndLocationIfNotTheSame(newConf);
 				String sp = project.getSharedSpace();
 				if (project.hasError()) {
-					return buildResponseStringEmptyConfigs(project.getErrorMsg());
+					return buildResponseStringEmptyConfigsWithError(project.getErrorMsg());
 				}
 				OctaneConfiguration octaneConfiguration = new OctaneConfiguration(newConf.getIdentity(), newConf.getLocation(),
 						project.getSharedSpace());
@@ -166,7 +168,7 @@ public class ConfigurationActionsController implements Controller {
 				try {
 					OctaneSDK.addClient(octaneConfiguration, TeamCityPluginServicesImpl.class);
 				} catch (Exception e) {
-					return buildResponseStringEmptyConfigs(e.getMessage());
+					return buildResponseStringEmptyConfigsWithError(e.getMessage());
 				}
 				holder.getOctaneConfigurations().put(newConf.getIdentity(), octaneConfiguration);
 				newConf.setSharedSpace(sp);
@@ -176,7 +178,7 @@ public class ConfigurationActionsController implements Controller {
 				OctaneConfiguration octaneConfiguration = holder.getOctaneConfigurations().get(result.getIdentity());
 				MqmProject project = parseUiLocation(newConf.getUiLocation());
 				if (project.hasError()) {
-					return buildResponseStringEmptyConfigs(project.getErrorMsg());
+					return buildResponseStringEmptyConfigsWithError(project.getErrorMsg());
 				}
 				String sp = project.getSharedSpace();
 				String location = project.getLocation();
@@ -189,6 +191,7 @@ public class ConfigurationActionsController implements Controller {
 				octaneConfiguration.setSharedSpace(sp);
 				result.setSharedSpace(sp);
 				result.setLocation(location);
+				result.setImpersonatedUser(newConf.getImpersonatedUser());
 			}
 		}
 
@@ -228,7 +231,7 @@ public class ConfigurationActionsController implements Controller {
 			return mapper.writeValueAsString(cfg);
 		} catch (JsonProcessingException jpe) {
 			logger.error("failed to reload configuration", jpe);
-			return "failed to reload configuration";
+			return Utils.buildResponseStringEmptyConfigsWithError("failed to reload configuration");
 		}
 	}
 

@@ -23,7 +23,6 @@ import com.hp.octane.integrations.dto.causes.CIEventCauseType;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
-import com.hp.octane.plugins.jetbrains.teamcity.OctaneTeamCityPlugin;
 import com.hp.octane.plugins.jetbrains.teamcity.factories.ModelCommonFactory;
 import com.hp.octane.plugins.jetbrains.teamcity.factories.ParametersFactory;
 import jetbrains.buildServer.serverSide.*;
@@ -52,8 +51,6 @@ public class ProgressEventsListener extends BuildServerAdapter {
     private ModelCommonFactory modelCommonFactory;
     @Autowired
     private ParametersFactory parametersFactory;
-    @Autowired
-    private SBuildServer buildServer;
 
     private ProgressEventsListener(EventDispatcher<BuildServerListener> dispatcher) {
         dispatcher.addListener(this);

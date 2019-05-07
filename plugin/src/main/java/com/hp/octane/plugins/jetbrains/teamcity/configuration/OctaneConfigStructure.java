@@ -39,6 +39,8 @@ public class OctaneConfigStructure {
 	@XmlElement(name = "secret")
 	private String secretPassword;
 	@XmlElement
+	private String impersonatedUser;
+	@XmlElement
 	private String location;
 	@XmlElement
 	private String sharedSpace;
@@ -118,6 +120,7 @@ public class OctaneConfigStructure {
 				", apiKey: " + username +
 				", secret: " + secretPassword +
 				", location: " + location +
+				", impersonatedUser: " + impersonatedUser +
 				", sharedSpace: " + sharedSpace + '}';
 	}
 
@@ -129,11 +132,20 @@ public class OctaneConfigStructure {
 		return Objects.equals(location, that.location) &&
 				Objects.equals(username, that.username) &&
 				Objects.equals(getSecretPassword(), that.getSecretPassword()) &&
+				Objects.equals(impersonatedUser, that.impersonatedUser) &&
 				Objects.equals(sharedSpace, that.sharedSpace);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(uiLocation, username, getSecretPassword(), sharedSpace);
+		return Objects.hash(uiLocation, username, getSecretPassword(), impersonatedUser, sharedSpace);
+	}
+
+	public String getImpersonatedUser() {
+		return impersonatedUser;
+	}
+
+	public void setImpersonatedUser(String impersonatedUser) {
+		this.impersonatedUser = impersonatedUser;
 	}
 }

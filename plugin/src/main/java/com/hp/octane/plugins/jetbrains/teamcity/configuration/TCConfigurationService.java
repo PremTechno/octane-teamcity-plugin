@@ -21,6 +21,8 @@ import com.hp.octane.integrations.OctaneSDK;
 import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
 import com.hp.octane.plugins.jetbrains.teamcity.TeamCityPluginServicesImpl;
 import jetbrains.buildServer.serverSide.SBuildServer;
+import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.apache.commons.httpclient.HttpStatus;
 import org.apache.logging.log4j.LogManager;
@@ -40,6 +42,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 import static com.hp.octane.plugins.jetbrains.teamcity.utils.Utils.buildResponseStringEmptyConfigs;
+import static com.hp.octane.plugins.jetbrains.teamcity.utils.Utils.buildResponseStringEmptyConfigsWithError;
+import static com.hp.octane.plugins.jetbrains.teamcity.utils.Utils.setMessageFont;
+import static org.apache.commons.lang3.StringEscapeUtils.escapeHtml4;
 
 /**
  * Created by lazara.
@@ -47,118 +52,136 @@ import static com.hp.octane.plugins.jetbrains.teamcity.utils.Utils.buildResponse
  */
 
 public class TCConfigurationService {
-    private static final Logger logger = LogManager.getLogger(TCConfigurationService.class);
-    private static final String CONFIG_FILE = "octane-config.xml";
-    private static final String OLD_ROOT_ELEMENT = "octane-config";
-    @Autowired
-    private SBuildServer buildServer;
-    @Autowired
-    private PluginDescriptor pluginDescriptor;
+	private static final Logger logger = LogManager.getLogger(TCConfigurationService.class);
+	private static final String CONFIG_FILE = "octane-config.xml";
+	private static final String OLD_ROOT_ELEMENT = "octane-config";
+	@Autowired
+	private SBuildServer buildServer;
+	@Autowired
+	private PluginDescriptor pluginDescriptor;
 
-    public String checkConfiguration(OctaneConfiguration octaneConfiguration) {
-        String resultMessage;
-        OctaneResponse result;
-        try {
-            result = OctaneSDK.testOctaneConfiguration(octaneConfiguration.getUrl(),
-                    octaneConfiguration.getSharedSpace(),
-                    octaneConfiguration.getClient(),
-                    octaneConfiguration.getSecret(),
-                    TeamCityPluginServicesImpl.class);
-        } catch (Exception e) {
-            return buildResponseStringEmptyConfigs("Connection failed: " + e.getMessage());
-        }
+	public String checkConfiguration(OctaneConfiguration octaneConfiguration, String impersonatedUser) {
+		String resultMessage;
+		OctaneResponse result;
+		try {
+			result = OctaneSDK.testOctaneConfiguration(octaneConfiguration.getUrl(),
+					octaneConfiguration.getSharedSpace(),
+					octaneConfiguration.getClient(),
+					octaneConfiguration.getSecret(),
+					TeamCityPluginServicesImpl.class);
+		} catch (Exception e) {
+			return buildResponseStringEmptyConfigsWithError("Connection failed: " + e.getMessage());
+		}
 
-        if (result.getStatus() == HttpStatus.SC_OK) {
-            resultMessage = "Connection succeeded";
-        } else if (result.getStatus() == HttpStatus.SC_UNAUTHORIZED) {
-            resultMessage = "Authentication failed";
-        } else if (result.getStatus() == HttpStatus.SC_FORBIDDEN) {
-            resultMessage = octaneConfiguration.getClient() + " not authorized to shared space " + octaneConfiguration.getSharedSpace();
-        } else if (result.getStatus() == HttpStatus.SC_NOT_FOUND) {
-            resultMessage = "Shared space " + octaneConfiguration.getSharedSpace() + " not exists";
-        } else {
-            resultMessage = "Validation failed for unknown reason; status code: " + result.getStatus();
-        }
-        return buildResponseStringEmptyConfigs(resultMessage);
-    }
+		if (result.getStatus() == HttpStatus.SC_OK) {
+			resultMessage = setMessageFont("Connection succeeded", "green");
+		} else if (result.getStatus() == HttpStatus.SC_UNAUTHORIZED) {
+			resultMessage = setMessageFont("Authentication failed","red");
+		} else if (result.getStatus() == HttpStatus.SC_FORBIDDEN) {
+			resultMessage = octaneConfiguration.getClient() + " not authorized to shared space " + octaneConfiguration.getSharedSpace();
+			resultMessage = setMessageFont(resultMessage, "red");
+		} else if (result.getStatus() == HttpStatus.SC_NOT_FOUND) {
+			resultMessage = "Shared space " + octaneConfiguration.getSharedSpace() + " not exists";
+			resultMessage = setMessageFont(resultMessage, "red");
+		} else {
+			resultMessage = "Validation failed for unknown reason; status code: " + result.getStatus();
+			resultMessage = setMessageFont(resultMessage, "red");
+		}
+		resultMessage = checkImpersonatedUser(resultMessage, impersonatedUser);
+		return buildResponseStringEmptyConfigs(resultMessage);
+	}
 
-    public List<OctaneConfigStructure> readConfig() {
-        OctaneConfigMultiSharedSpaceStructure multiSharedSpaceStructure;
-        try {
-            JAXBContext context = JAXBContext.newInstance(OctaneConfigMultiSharedSpaceStructure.class);
-            Unmarshaller un = context.createUnmarshaller();
-            multiSharedSpaceStructure = (OctaneConfigMultiSharedSpaceStructure) un.unmarshal(getConfigurationResource());
-        } catch (JAXBException jaxbe) {
-            logger.error("failed to read Octane configuration", jaxbe);
-            return null;
-        }
-        return multiSharedSpaceStructure.getMultiConfigStructure();
-    }
+	private String checkImpersonatedUser(String resultMessage, String impersonatedUser) {
+		if (impersonatedUser == null || impersonatedUser.isEmpty()) {
+			return resultMessage;
+		}
+		UserModel userModel = buildServer.getUserModel();
+		List<SUser> users = new ArrayList<>(userModel.getAllUsers().getUsers());
+		SUser user = users.stream().filter(u -> impersonatedUser.equals(u.getUsername())).findAny()
+				.orElse(null);
+		if (user == null) {
+			resultMessage = resultMessage + "<br><font color=\"red\">Warning! </font>User '" + impersonatedUser + "' is not defined in TeamCity";
+		}
+		return resultMessage;
+	}
 
-    public void upgradeConfig() {
-        OctaneConfigStructure result;
-        try {
-            JAXBContext context = JAXBContext.newInstance(OctaneConfigStructure.class);
-            Unmarshaller un = context.createUnmarshaller();
-            result = (OctaneConfigStructure) un.unmarshal(getConfigurationResource());
-        } catch (JAXBException jaxbe) {
-            logger.error("failed to read Octane configuration", jaxbe);
-            return;
-        }
-        List<OctaneConfigStructure> multiSharedSpaceStructure = new ArrayList<>();
-        multiSharedSpaceStructure.add(result);
-        OctaneConfigMultiSharedSpaceStructure configs = new OctaneConfigMultiSharedSpaceStructure();
-        configs.setMultiConfigStructure(multiSharedSpaceStructure);
-        saveConfig(configs);
-        logger.info("ALM Octane CI Plugin configuration was upgraded");
-    }
+	public List<OctaneConfigStructure> readConfig() {
+		OctaneConfigMultiSharedSpaceStructure multiSharedSpaceStructure;
+		try {
+			JAXBContext context = JAXBContext.newInstance(OctaneConfigMultiSharedSpaceStructure.class);
+			Unmarshaller un = context.createUnmarshaller();
+			multiSharedSpaceStructure = (OctaneConfigMultiSharedSpaceStructure) un.unmarshal(getConfigurationResource());
+		} catch (JAXBException jaxbe) {
+			logger.error("failed to read Octane configuration", jaxbe);
+			return null;
+		}
+		return multiSharedSpaceStructure.getMultiConfigStructure();
+	}
 
-    public String saveConfig(OctaneConfigMultiSharedSpaceStructure configs) {
-        try {
-            JAXBContext context = JAXBContext.newInstance(OctaneConfigMultiSharedSpaceStructure.class);
-            Marshaller m = context.createMarshaller();
-            m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
-            m.marshal(configs, getConfigurationResource());
-            int index = 0;
-            String result = "{\"configs\":{";
-            for (OctaneConfigStructure conf : configs.getMultiConfigStructure()) {
-                result += "\"" + index + "\" : \"" + conf.getIdentity() + "\",";
-                index++;
-            }
-            result = configs.getMultiConfigStructure().isEmpty() ? result : result.substring(0, result.length() - 1);
-            result += "}, \"status\":\"Configurations updated successfully\"}";
-            return result;
-        } catch (JAXBException jaxbe) {
-            logger.error("failed to save Octane configurations", jaxbe);
-            return buildResponseStringEmptyConfigs("failed to save Octane configurations");
-        } catch (IllegalStateException e) {
-            logger.error("faild to publish Octane configurations", e);
-            return buildResponseStringEmptyConfigs("failed to publish Octane configurations");
-        }
-    }
+	public void upgradeConfig() {
+		OctaneConfigStructure result;
+		try {
+			JAXBContext context = JAXBContext.newInstance(OctaneConfigStructure.class);
+			Unmarshaller un = context.createUnmarshaller();
+			result = (OctaneConfigStructure) un.unmarshal(getConfigurationResource());
+		} catch (JAXBException jaxbe) {
+			logger.error("failed to read Octane configuration", jaxbe);
+			return;
+		}
+		List<OctaneConfigStructure> multiSharedSpaceStructure = new ArrayList<>();
+		multiSharedSpaceStructure.add(result);
+		OctaneConfigMultiSharedSpaceStructure configs = new OctaneConfigMultiSharedSpaceStructure();
+		configs.setMultiConfigStructure(multiSharedSpaceStructure);
+		saveConfig(configs);
+		logger.info("ALM Octane CI Plugin configuration was upgraded");
+	}
 
-    private File getConfigurationResource() {
-        return new File(buildServer.getServerRootPath() + pluginDescriptor.getPluginResourcesPath(CONFIG_FILE));
-    }
+	public String saveConfig(OctaneConfigMultiSharedSpaceStructure configs) {
+		try {
+			JAXBContext context = JAXBContext.newInstance(OctaneConfigMultiSharedSpaceStructure.class);
+			Marshaller m = context.createMarshaller();
+			m.setProperty(Marshaller.JAXB_FORMATTED_OUTPUT, Boolean.TRUE);
+			m.marshal(configs, getConfigurationResource());
+			int index = 0;
+			String result = "{\"configs\":{";
+			for (OctaneConfigStructure conf : configs.getMultiConfigStructure()) {
+				result += "\"" + index + "\" : \"" + conf.getIdentity() + "\",";
+				index++;
+			}
+			result = configs.getMultiConfigStructure().isEmpty() ? result : result.substring(0, result.length() - 1);
+			result += "}, \"status\":\"" + escapeHtml4(setMessageFont("Configurations updated successfully", "green"))+ "\"}";
+			return result;
+		} catch (JAXBException jaxbe) {
+			logger.error("failed to save Octane configurations", jaxbe);
+			return buildResponseStringEmptyConfigsWithError("failed to save Octane configurations");
+		} catch (IllegalStateException e) {
+			logger.error("faild to publish Octane configurations", e);
+			return buildResponseStringEmptyConfigsWithError("failed to publish Octane configurations");
+		}
+	}
 
-    public boolean isEmptyConfig() {
-        File file = getConfigurationResource();
-        return !file.exists() || file.length() == 0;
-    }
+	private File getConfigurationResource() {
+		return new File(buildServer.getServerRootPath() + pluginDescriptor.getPluginResourcesPath(CONFIG_FILE));
+	}
 
-    public boolean isOldConfiguration() throws Exception {
-        DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
-        try {
-            DocumentBuilder builder = factory.newDocumentBuilder();
-            Document document = builder.parse(getConfigurationResource());
-            Element rootElement = document.getDocumentElement();
-            if (OLD_ROOT_ELEMENT.equalsIgnoreCase(rootElement.getTagName())) {
-                return true;
-            }
-            return false;
-        } catch (Exception e) {
-            logger.error(e.getMessage());
-            throw e;
-        }
-    }
+	public boolean isEmptyConfig() {
+		File file = getConfigurationResource();
+		return !file.exists() || file.length() == 0;
+	}
+
+	public boolean isOldConfiguration() throws Exception {
+		DocumentBuilderFactory factory = DocumentBuilderFactory.newInstance();
+		try {
+			DocumentBuilder builder = factory.newDocumentBuilder();
+			Document document = builder.parse(getConfigurationResource());
+			Element rootElement = document.getDocumentElement();
+			if (OLD_ROOT_ELEMENT.equalsIgnoreCase(rootElement.getTagName())) {
+				return true;
+			}
+			return false;
+		} catch (Exception e) {
+			logger.error(e.getMessage());
+			throw e;
+		}
+	}
 }

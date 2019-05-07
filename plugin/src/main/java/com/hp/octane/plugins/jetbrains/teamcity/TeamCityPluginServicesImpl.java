@@ -29,12 +29,19 @@ import com.hp.octane.integrations.dto.tests.BuildContext;
 import com.hp.octane.integrations.dto.tests.TestRun;
 import com.hp.octane.integrations.dto.tests.TestRunResult;
 import com.hp.octane.integrations.dto.tests.TestsResult;
+import com.hp.octane.integrations.exceptions.PermissionException;
 import com.hp.octane.integrations.utils.CIPluginSDKUtils;
+import com.hp.octane.plugins.jetbrains.teamcity.configuration.OctaneConfigStructure;
+import com.hp.octane.plugins.jetbrains.teamcity.configuration.TCConfigurationHolder;
 import com.hp.octane.plugins.jetbrains.teamcity.factories.ModelCommonFactory;
 import com.hp.octane.plugins.jetbrains.teamcity.factories.SnapshotsFactory;
 import com.hp.octane.plugins.jetbrains.teamcity.utils.SpringContextBridge;
 import jetbrains.buildServer.Build;
 import jetbrains.buildServer.serverSide.*;
+import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.users.SUser;
+import jetbrains.buildServer.users.UserModel;
+import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -54,17 +61,37 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
 
 	private ProjectManager projectManager;
-	private SBuildServer sBuildServer;
+	private BuildServerEx buildServerEx;
 	private ModelCommonFactory modelCommonFactory;
 	private SnapshotsFactory snapshotsFactory;
 	private PluginDescriptor pluginDescriptor;
+	private UserModel userModel;
+	private TCConfigurationHolder holder;
 
 	public TeamCityPluginServicesImpl() {
 		projectManager = SpringContextBridge.services().getProjectManager();
-		sBuildServer = SpringContextBridge.services().getSBuildServer();
+		buildServerEx = SpringContextBridge.services().getSBuildServer();
 		modelCommonFactory = SpringContextBridge.services().getModelCommonFactory();
 		snapshotsFactory = SpringContextBridge.services().getSnapshotsFactory();
 		pluginDescriptor = SpringContextBridge.services().getPluginDescriptor();
+		userModel = buildServerEx.getUserModel();
+		holder = SpringContextBridge.services().getTCConfigurationHolder();
+	}
+
+	private SUser getImpersonatedUser() {
+		OctaneConfigStructure conf = holder.getConfigs().stream().filter(confStr -> getInstanceId().equals(confStr.getIdentity())).findAny()
+				.orElse(null);
+		if (conf != null && (conf.getImpersonatedUser() != null && !conf.getImpersonatedUser().isEmpty())) {
+			List<SUser> users = new ArrayList<>(userModel.getAllUsers().getUsers());
+			SUser impersonatedUser = users.stream().filter(u -> conf.getImpersonatedUser().equals(u.getUsername())).findAny()
+					.orElse(null);
+			if (impersonatedUser == null) {
+				log.error("Impersonated user '" + conf.getImpersonatedUser() + "' does not exist in TeamCity");
+				throw new PermissionException(405);
+			}
+			return impersonatedUser;
+		}
+		return null;
 	}
 
 	@Override
@@ -72,7 +99,7 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 		return dtoFactory.newDTO(CIServerInfo.class)
 				.setSendingTime(System.currentTimeMillis())
 				.setType(CIServerTypes.TEAMCITY.value())
-				.setUrl(sBuildServer.getRootUrl())
+				.setUrl(buildServerEx.getRootUrl())
 				.setVersion(pluginDescriptor.getPluginVersion());
 	}
 
@@ -84,7 +111,7 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 
 	@Override
 	public File getAllowedOctaneStorage() {
-		return new File(sBuildServer.getServerRootPath(), "logs");
+		return new File(buildServerEx.getServerRootPath(), "logs");
 	}
 
 	@Override
@@ -106,7 +133,20 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 
 	@Override
 	public CIJobsList getJobsList(boolean includeParameters) {
-		return modelCommonFactory.createProjectList();
+		SUser impersonatedUser = getImpersonatedUser();
+		if (impersonatedUser == null) {
+			return modelCommonFactory.createProjectList();
+		}
+		try {
+			return buildServerEx.getSecurityContext().runAs(impersonatedUser, () -> modelCommonFactory.createProjectList());
+		} catch (Throwable throwable) {
+			if(throwable instanceof AccessDeniedException) {
+				log.error(throwable.getMessage(), throwable);
+				throw new PermissionException(403);
+			}
+			ExceptionUtil.rethrowAsRuntimeException(throwable);
+		}
+		return null;
 	}
 
 	@Override
@@ -127,7 +167,7 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 
 	@Override
 	public void runPipeline(String jobCiId, String originalBody) {
-		SBuildType buildType = projectManager.findBuildTypeByExternalId(jobCiId);
+		SBuildType buildType = findBuildType(jobCiId);
 		if (buildType != null) {
 			buildType.addToQueue("ngaRemoteExecution");
 		}
@@ -137,9 +177,9 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 	public InputStream getTestsResult(String jobId, String buildId) {
 		TestsResult result = null;
 		if (jobId != null && buildId != null) {
-			SBuildType buildType = projectManager.findBuildTypeByExternalId(jobId);
+			SBuildType buildType = findBuildType(jobId);
 			if (buildType != null) {
-				Build build = sBuildServer.findBuildInstanceById(Long.valueOf(buildId));
+				Build build = buildServerEx.findBuildInstanceById(Long.valueOf(buildId));
 				if (build instanceof SFinishedBuild) {
 					List<TestRun> tests = createTestList((SFinishedBuild) build);
 					if (tests != null && !tests.isEmpty()) {
@@ -157,6 +197,24 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 			}
 		}
 		return result == null ? null : dtoFactory.dtoToXmlStream(result);
+	}
+
+	private SBuildType findBuildType(String jobId) {
+		SUser impersonatedUser = getImpersonatedUser();
+		if (impersonatedUser == null) {
+			return projectManager.findBuildTypeByExternalId(jobId);
+		} else {
+			try {
+				return buildServerEx.getSecurityContext().runAs(impersonatedUser, () -> projectManager.findBuildTypeByExternalId(jobId));
+			} catch (Throwable throwable) {
+				if(throwable instanceof AccessDeniedException) {
+					log.error(throwable.getMessage(), throwable);
+					throw new PermissionException(403);
+				}
+				ExceptionUtil.rethrowAsRuntimeException(throwable);
+			}
+		}
+		return null;
 	}
 
 	private List<TestRun> createTestList(SFinishedBuild build) {

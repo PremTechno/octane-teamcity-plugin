@@ -25,7 +25,7 @@
                     if (xhttp.status === 200) {
                         var json = JSON.parse(xhttp.responseText);
                         for (var i = 0; i < json.length; i++) {
-                            addSP(i, json[i].uiLocation, json[i].username, json[i].secretPassword, json[i].identity);
+                            addSP(i, json[i].uiLocation, json[i].username, json[i].secretPassword, json[i].impersonatedUser, json[i].identity);
                         }
                     }
                 }
@@ -33,6 +33,23 @@
             var parameters = "action=reload";
             xhttp.open("GET", getServletURL(), true);
             xhttp.send(parameters);
+        }
+
+        function decodeEntities(encodedString) {
+            var translate_re = /&(nbsp|amp|quot|lt|gt);/g;
+            var translate = {
+                "nbsp":" ",
+                "amp" : "&",
+                "quot": "\"",
+                "lt"  : "<",
+                "gt"  : ">"
+            };
+            return encodedString.replace(translate_re, function(match, entity) {
+                return translate[entity];
+            }).replace(/&#(\d+);/gi, function(match, numStr) {
+                var num = parseInt(numStr, 10);
+                return String.fromCharCode(num);
+            });
         }
     </script>
 
@@ -47,10 +64,10 @@
         }
 
         function addNewSP() {
-            addSP(getConfCount() + 1, '', '', '', '');
+            addSP(getConfCount() + 1, '', '', '', '', '');
         }
 
-        function addSP(index, server, clientId, clientSecret, instanceId) {
+        function addSP(index, server, clientId, clientSecret, impersonatedUser, instanceId) {
             // alert(index + ', ' + server + ', ' + clientId + ', ' + clientSecret + ', ' + instanceId + ', ' + sharedSpace);
             var spBlock = "<table name='spConfigTable' class='runnerFormTable' id='connectionsTable" + index + "' >" +
                 "<tr>" +
@@ -81,6 +98,15 @@
                 "</tr>" +
 
                 "<tr>" +
+                "<th><label for='impersonatedUser'>TeamCity user </label></th>" +
+                "<td>" +
+                "<input type='text' name='impersonatedUser" + index + "' id='impersonatedUser" + index + "'   value='' class='longField'        >" +
+                "<span class='error' id='errorImpersonatedUser" + index + "'></span>" +
+                "<span style='font-size: xx-small;'>The user to impersonate (Jobs will be executed on behalf of this user)</span>" +
+                "</td>" +
+                "</tr>" +
+
+                "<tr>" +
                 "<input type='hidden' name='instanceId" + index + "' id='instanceId" + index + "'   value=''>" +
                 "</tr>" +
 
@@ -99,6 +125,7 @@
             document.getElementById("username" + index).value = clientId;
             document.getElementById("password" + index).value = clientSecret;
             document.getElementById("server" + index).value = server;
+            document.getElementById("impersonatedUser" + index).value = impersonatedUser;
             document.getElementById("instanceId" + index).value = instanceId;
         }
 
@@ -119,7 +146,7 @@
                         for (var i in data.configs) {
                             document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > input[name^='instanceId']")[0].value = data.configs[i];
                         }
-                        message_box_div.innerHTML = data.status;
+                        message_box_div.innerHTML = decodeEntities(data.status);
                     } else {
                         message_box_div.innerHTML = "Error";
                     }
@@ -135,6 +162,7 @@
                 var password = document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > td > input[name^='password']")[0].value;
                 var username = document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > td > input[name^='username']")[0].value;
                 var server = document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > td > input[name^='server']")[0].value;
+                var impersonatedUser = document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > td > input[name^='impersonatedUser']")[0].value;
                 var instanceId = document.getElementsByClassName("runnerFormTable")[i].querySelectorAll("tbody > tr > input[name^='instanceId']")[0].value;
 
                 config.push(
@@ -142,6 +170,7 @@
                         "uiLocation": server,
                         "username": username,
                         "secretPassword": password,
+                        "impersonatedUser": impersonatedUser,
                         "identity": instanceId
                     }
                 );
@@ -165,6 +194,8 @@
             table.parentNode.removeChild(table);
         }
 
+
+
         function checkConnection(index) {
             var xhttp = new XMLHttpRequest();
             xhttp.onreadystatechange = function () {
@@ -172,7 +203,7 @@
                     if (xhttp.status === 200) {
                         try {
                             var data = JSON.parse(xhttp.responseText);
-                            message_box_div.innerHTML = data.status;
+                            message_box_div.innerHTML = decodeEntities(data.status);
                         } catch (e) {
                             message_box_div.innerHTML = 'Failed to parse response: ' + xhttp.responseText;
                         }
@@ -186,8 +217,10 @@
             var server = encodeURIComponent(document.getElementById("server" + index).value);
             var username = encodeURIComponent(document.getElementById("username" + index).value);
             var password = encodeURIComponent(document.getElementById("password" + index).value);
+            var impersonatedUser = encodeURIComponent(document.getElementById("impersonatedUser" + index).value);
             var instanceId = encodeURIComponent(document.getElementById("instanceId" + index).value);
-            var parameters = "action=test&server=" + server + "&username=" + username + "&password=" + password + "&instanceId=" + instanceId;
+            var parameters = "action=test&server=" + server + "&username=" + username + "&password=" + password +
+                "&impersonatedUser=" + impersonatedUser + "&instanceId=" + instanceId;
 
             xhttp.open("POST", getServletURL(), true);
             xhttp.setRequestHeader("Content-type", "application/x-www-form-urlencoded");
