@@ -23,6 +23,7 @@ import com.hp.octane.integrations.dto.causes.CIEventCauseType;
 import com.hp.octane.integrations.dto.events.CIEvent;
 import com.hp.octane.integrations.dto.events.CIEventType;
 import com.hp.octane.integrations.dto.events.PhaseType;
+import com.hp.octane.plugins.jetbrains.teamcity.OctaneTeamCityPlugin;
 import com.hp.octane.plugins.jetbrains.teamcity.factories.ModelCommonFactory;
 import com.hp.octane.plugins.jetbrains.teamcity.factories.ParametersFactory;
 import jetbrains.buildServer.serverSide.*;
@@ -51,6 +52,8 @@ public class ProgressEventsListener extends BuildServerAdapter {
     private ModelCommonFactory modelCommonFactory;
     @Autowired
     private ParametersFactory parametersFactory;
+	@Autowired
+	private SBuildServer buildServer;
 
     private ProgressEventsListener(EventDispatcher<BuildServerListener> dispatcher) {
         dispatcher.addListener(this);
@@ -71,6 +74,11 @@ public class ProgressEventsListener extends BuildServerAdapter {
             OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(event));
         }
     }
+
+	@Override
+	public void serverStartup() {
+		OctaneTeamCityPlugin.setRootURL(buildServer.getRootUrl());
+	}
 
     @Override
     public void buildStarted(@NotNull SRunningBuild build) {
@@ -163,6 +171,4 @@ public class ProgressEventsListener extends BuildServerAdapter {
                 .setProject(build.getBuildType().getExternalId())
                 .setBuildCiId(String.valueOf(build.getItemId()));
     }
-
-
 }

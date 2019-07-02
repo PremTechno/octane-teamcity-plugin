@@ -118,7 +118,7 @@ public class OctaneConfigStructure {
 				", identityFrom: " + identityFrom +
 				", uiLocation: " + uiLocation +
 				", apiKey: " + username +
-				", secret: " + secretPassword +
+				", secret: ******"  +
 				", location: " + location +
 				", impersonatedUser: " + impersonatedUser +
 				", sharedSpace: " + sharedSpace + '}';
