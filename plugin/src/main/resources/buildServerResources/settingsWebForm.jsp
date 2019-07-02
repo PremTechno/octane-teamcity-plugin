@@ -182,7 +182,13 @@
         }
 
         function getServletURL() {
-            return "/octane-rest/";
+            var rootURL =  window.location.href;
+            rootURL = rootURL.split("/admin")[0];
+            <%--var rootURL = "${conf.getServerUrl()}";--%>
+            if (!rootURL) {
+                return "/octane-rest/";
+            }
+            return rootURL + "/octane-rest/";
         }
 
     </script>
