@@ -18,13 +18,12 @@ package com.hp.octane.plugins.jetbrains.teamcity.configuration;
 
 import com.hp.octane.integrations.OctaneConfiguration;
 import com.hp.octane.integrations.OctaneSDK;
-import com.hp.octane.integrations.dto.connectivity.OctaneResponse;
+import com.hp.octane.integrations.exceptions.OctaneConnectivityException;
 import com.hp.octane.plugins.jetbrains.teamcity.TeamCityPluginServicesImpl;
 import jetbrains.buildServer.serverSide.SBuildServer;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
-import org.apache.commons.httpclient.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -61,32 +60,20 @@ public class TCConfigurationService {
 	private PluginDescriptor pluginDescriptor;
 
 	public String checkConfiguration(OctaneConfiguration octaneConfiguration, String impersonatedUser) {
-		String resultMessage;
-		OctaneResponse result;
+		String resultMessage = setMessageFont("Connection succeeded", "green");
+
 		try {
-			result = OctaneSDK.testOctaneConfiguration(octaneConfiguration.getUrl(),
+			OctaneSDK.testAndValidateOctaneConfiguration(octaneConfiguration.getUrl(),
 					octaneConfiguration.getSharedSpace(),
 					octaneConfiguration.getClient(),
 					octaneConfiguration.getSecret(),
 					TeamCityPluginServicesImpl.class);
+		} catch (OctaneConnectivityException octaneConnEx){
+			resultMessage = setMessageFont(octaneConnEx.getErrorMessageVal(), "red");
 		} catch (Exception e) {
 			return buildResponseStringEmptyConfigsWithError("Connection failed: " + e.getMessage());
 		}
 
-		if (result.getStatus() == HttpStatus.SC_OK) {
-			resultMessage = setMessageFont("Connection succeeded", "green");
-		} else if (result.getStatus() == HttpStatus.SC_UNAUTHORIZED) {
-			resultMessage = setMessageFont("Authentication failed","red");
-		} else if (result.getStatus() == HttpStatus.SC_FORBIDDEN) {
-			resultMessage = octaneConfiguration.getClient() + " not authorized to shared space " + octaneConfiguration.getSharedSpace();
-			resultMessage = setMessageFont(resultMessage, "red");
-		} else if (result.getStatus() == HttpStatus.SC_NOT_FOUND) {
-			resultMessage = "Shared space " + octaneConfiguration.getSharedSpace() + " not exists";
-			resultMessage = setMessageFont(resultMessage, "red");
-		} else {
-			resultMessage = "Validation failed for unknown reason; status code: " + result.getStatus();
-			resultMessage = setMessageFont(resultMessage, "red");
-		}
 		resultMessage = checkImpersonatedUser(resultMessage, impersonatedUser);
 		return buildResponseStringEmptyConfigs(resultMessage);
 	}
