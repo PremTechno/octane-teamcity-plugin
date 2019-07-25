@@ -5,6 +5,7 @@ import com.hp.octane.plugins.jetbrains.teamcity.factories.ModelCommonFactory;
 import com.hp.octane.plugins.jetbrains.teamcity.factories.SnapshotsFactory;
 import jetbrains.buildServer.serverSide.BuildServerEx;
 import jetbrains.buildServer.serverSide.ProjectManager;
+import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -25,7 +26,8 @@ public class SpringContextBridge implements SpringContextBridgedServices, Applic
 	private PluginDescriptor pluginDescriptor;
 	@Autowired
 	private TCConfigurationHolder holder;
-
+	@Autowired
+	private ParameterFactory parameterFactory;
 
 	public void setApplicationContext(ApplicationContext context) throws BeansException {
 		this.context = context;
@@ -57,7 +59,14 @@ public class SpringContextBridge implements SpringContextBridgedServices, Applic
 	}
 
 	@Override
-	public TCConfigurationHolder getTCConfigurationHolder() { return holder; }
+	public TCConfigurationHolder getTCConfigurationHolder() {
+		return holder;
+	}
+
+	@Override
+	public ParameterFactory getParameterFactory() {
+		return parameterFactory;
+	}
 
 	public static SpringContextBridgedServices services() {
 		return context.getBean(SpringContextBridgedServices.class);

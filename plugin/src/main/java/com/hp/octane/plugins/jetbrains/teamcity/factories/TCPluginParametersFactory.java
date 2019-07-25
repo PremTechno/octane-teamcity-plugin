@@ -30,7 +30,7 @@ import java.util.Map;
  * Created by gullery on 22/03/2016.
  */
 
-public class ParametersFactory {
+public class TCPluginParametersFactory {
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
 
 	public List<CIParameter> obtainFromBuildType(SBuildType buildType) {
@@ -43,7 +43,8 @@ public class ParametersFactory {
 						.setType(CIParameterType.STRING)
 						.setName(parameter.getKey())
 						.setDescription("Value location: " + parameter.getValue())
-						.setValue(parameter.getValue());
+						.setValue(parameter.getValue())
+						.setDefaultValue(parameter.getValue());
 				result.add(tmp);
 			}
 		}
@@ -57,14 +58,31 @@ public class ParametersFactory {
 
 		if (build != null && !build.getBuildOwnParameters().isEmpty()) {
 			for (Map.Entry<String, String> parameter : build.getBuildOwnParameters().entrySet()) {
+				String name = parameter.getKey();
+				if (parameter.getKey().startsWith("build.my")) {
+					name = parameter.getKey().substring("build.my.".length(), parameter.getKey().length());
+				}
+				if (isNotVisibleParam(name)) {
+					continue;
+				}
 				tmp = dtoFactory.newDTO(CIParameter.class)
 						.setType(CIParameterType.STRING)
-						.setName(parameter.getKey())
+						.setName(name)
 						.setValue(parameter.getValue());
 				result.add(tmp);
 			}
 		}
 
 		return result;
+	}
+
+	private boolean isNotVisibleParam(String name) {
+		if (name.startsWith("system.") ||
+				name.startsWith("build.") ||
+				name.startsWith("env.") ||
+				name.startsWith("teamcity.")) {
+			return true;
+		}
+		return false;
 	}
 }

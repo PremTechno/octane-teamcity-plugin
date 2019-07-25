@@ -23,6 +23,8 @@ import com.hp.octane.integrations.dto.general.CIJobsList;
 import com.hp.octane.integrations.dto.general.CIPluginInfo;
 import com.hp.octane.integrations.dto.general.CIServerInfo;
 import com.hp.octane.integrations.dto.general.CIServerTypes;
+import com.hp.octane.integrations.dto.parameters.CIParameter;
+import com.hp.octane.integrations.dto.parameters.CIParameters;
 import com.hp.octane.integrations.dto.pipelines.PipelineNode;
 import com.hp.octane.integrations.dto.snapshots.SnapshotNode;
 import com.hp.octane.integrations.dto.tests.BuildContext;
@@ -30,15 +32,18 @@ import com.hp.octane.integrations.dto.tests.TestRun;
 import com.hp.octane.integrations.dto.tests.TestRunResult;
 import com.hp.octane.integrations.dto.tests.TestsResult;
 import com.hp.octane.integrations.exceptions.PermissionException;
+import com.hp.octane.integrations.exceptions.SPIMethodNotImplementedException;
 import com.hp.octane.integrations.utils.CIPluginSDKUtils;
 import com.hp.octane.plugins.jetbrains.teamcity.configuration.OctaneConfigStructure;
 import com.hp.octane.plugins.jetbrains.teamcity.configuration.TCConfigurationHolder;
 import com.hp.octane.plugins.jetbrains.teamcity.factories.ModelCommonFactory;
 import com.hp.octane.plugins.jetbrains.teamcity.factories.SnapshotsFactory;
+import com.hp.octane.plugins.jetbrains.teamcity.testrunner.TeamCityTestsToRunConverterBuilder;
 import com.hp.octane.plugins.jetbrains.teamcity.utils.SpringContextBridge;
 import jetbrains.buildServer.Build;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.ExceptionUtil;
@@ -67,6 +72,7 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 	private PluginDescriptor pluginDescriptor;
 	private UserModel userModel;
 	private TCConfigurationHolder holder;
+	private ParameterFactory parameterFactory;
 
 	public TeamCityPluginServicesImpl() {
 		projectManager = SpringContextBridge.services().getProjectManager();
@@ -76,15 +82,14 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 		pluginDescriptor = SpringContextBridge.services().getPluginDescriptor();
 		userModel = buildServerEx.getUserModel();
 		holder = SpringContextBridge.services().getTCConfigurationHolder();
+		parameterFactory = SpringContextBridge.services().getParameterFactory();
 	}
 
 	private SUser getImpersonatedUser() {
 		OctaneConfigStructure conf = holder.getConfigs().stream().filter(confStr -> getInstanceId().equals(confStr.getIdentity())).findAny()
 				.orElse(null);
 		if (conf != null && (conf.getImpersonatedUser() != null && !conf.getImpersonatedUser().isEmpty())) {
-			List<SUser> users = new ArrayList<>(userModel.getAllUsers().getUsers());
-			SUser impersonatedUser = users.stream().filter(u -> conf.getImpersonatedUser().equals(u.getUsername())).findAny()
-					.orElse(null);
+			SUser impersonatedUser = userModel.findUserAccount(null, conf.getImpersonatedUser());
 			if (impersonatedUser == null) {
 				log.error("Impersonated user '" + conf.getImpersonatedUser() + "' does not exist in TeamCity");
 				throw new PermissionException(405);
@@ -140,7 +145,7 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 		try {
 			return buildServerEx.getSecurityContext().runAs(impersonatedUser, () -> modelCommonFactory.createProjectList());
 		} catch (Throwable throwable) {
-			if(throwable instanceof AccessDeniedException) {
+			if (throwable instanceof AccessDeniedException) {
 				log.error(throwable.getMessage(), throwable);
 				throw new PermissionException(403);
 			}
@@ -169,8 +174,55 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 	public void runPipeline(String jobCiId, String originalBody) {
 		SBuildType buildType = findBuildType(jobCiId);
 		if (buildType != null) {
+			setJobParams(originalBody, buildType);
 			buildType.addToQueue("ngaRemoteExecution");
 		}
+	}
+
+	@Override
+	public void stopPipelineRun(String jobCiId, String originalBody) {
+		SBuildType buildType = findBuildType(jobCiId);
+		if (buildType != null) {
+			SUser impersonatedUser = getImpersonatedUser();
+			List<SRunningBuild> runningBuilds = buildType.getRunningBuilds(impersonatedUser);
+			for (SRunningBuild runningBuild : runningBuilds) {
+				runningBuild.stop(impersonatedUser, "build number [" + runningBuild.getBuildNumber() + "] of project "
+						+ runningBuild.getFullName() + " was canceled");
+			}
+		}
+	}
+
+	private void setJobParams(String originalBody, SBuildType buildType) {
+		if (originalBody != null && !originalBody.isEmpty() && originalBody.contains("parameters") &&
+				!buildType.getParameters().isEmpty()) {
+			CIParameters ciParameters = DTOFactory.getInstance().dtoFromJson(originalBody, CIParameters.class);
+			for (CIParameter param : ciParameters.getParameters()) {
+				String value;
+				if (TeamCityTestsToRunConverterBuilder.TESTS_TO_RUN_PARAMETER.equals(param.getName())) {
+					value = setTestsToRun(ciParameters, param, buildType.getConfigParameters().get(TeamCityTestsToRunConverterBuilder.TESTING_FRAMEWORK_PARAMETER));
+				} else {
+					value = (String) (param.getValue() == null ? param.getDefaultValue() : param.getValue());
+				}
+				Parameter buildParam = parameterFactory.createSimpleParameter("build.my." + param.getName(), value);
+				buildType.addBuildParameter(buildParam);
+			}
+		}
+	}
+
+	private String setTestsToRun(CIParameters ciParameters, CIParameter testsToRun, String defaultFramework) {
+		CIParameter testingFramework = ciParameters.getParameters().stream().filter(ciparam -> TeamCityTestsToRunConverterBuilder.TESTING_FRAMEWORK_PARAMETER.equals(ciparam.getName()))
+				.findAny()
+				.orElse(null);
+		TeamCityTestsToRunConverterBuilder builder;
+		if (testingFramework != null) {
+			String framework = (String) testingFramework.getValue();
+			builder = new TeamCityTestsToRunConverterBuilder(framework);
+		} else if (defaultFramework != null && !defaultFramework.isEmpty()) {
+			builder = new TeamCityTestsToRunConverterBuilder(defaultFramework);
+		} else {
+			builder = new TeamCityTestsToRunConverterBuilder();
+		}
+		return builder.convert((String) testsToRun.getValue(), null).getConvertedTestsString();
 	}
 
 	@Override
@@ -207,7 +259,7 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 			try {
 				return buildServerEx.getSecurityContext().runAs(impersonatedUser, () -> projectManager.findBuildTypeByExternalId(jobId));
 			} catch (Throwable throwable) {
-				if(throwable instanceof AccessDeniedException) {
+				if (throwable instanceof AccessDeniedException) {
 					log.error(throwable.getMessage(), throwable);
 					throw new PermissionException(403);
 				}

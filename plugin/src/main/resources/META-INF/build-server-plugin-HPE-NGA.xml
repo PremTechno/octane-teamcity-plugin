@@ -20,12 +20,16 @@
        xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns="http://www.springframework.org/schema/beans">
 
     <!-- MAIN -->
-    <bean id ="cityPlugin" name="cityPlugin" class="com.hp.octane.plugins.jetbrains.teamcity.OctaneTeamCityPlugin" depends-on="springContextBridgedServices"/>
+    <bean id="cityPlugin" name="cityPlugin" class="com.hp.octane.plugins.jetbrains.teamcity.OctaneTeamCityPlugin"
+          depends-on="springContextBridgedServices"/>
     <bean id="springContextBridgedServices" class="com.hp.octane.plugins.jetbrains.teamcity.utils.SpringContextBridge"/>
 
-    <bean id="commonFactory" name="commonFactory" class="com.hp.octane.plugins.jetbrains.teamcity.factories.ModelCommonFactory"/>
-    <bean id="snapshotsFactory" name="snapshotsFactory" class="com.hp.octane.plugins.jetbrains.teamcity.factories.SnapshotsFactory"/>
-    <bean id="parametersFactory" name="parametersFactory" class="com.hp.octane.plugins.jetbrains.teamcity.factories.ParametersFactory"/>
+    <bean id="commonFactory" name="commonFactory"
+          class="com.hp.octane.plugins.jetbrains.teamcity.factories.ModelCommonFactory"/>
+    <bean id="snapshotsFactory" name="snapshotsFactory"
+          class="com.hp.octane.plugins.jetbrains.teamcity.factories.SnapshotsFactory"/>
+    <bean id="parametersFactory" name="parametersFactory"
+          class="com.hp.octane.plugins.jetbrains.teamcity.factories.TCPluginParametersFactory"/>
     <bean id="genericOctaneActionsController" name="genericOctaneActionsController"
           class="com.hp.octane.plugins.jetbrains.teamcity.actions.GenericOctaneActionsController"/>
 
@@ -40,8 +44,10 @@
           class="com.hp.octane.plugins.jetbrains.teamcity.configuration.TCConfigurationHolder"/>
 
     <!-- EVENTS -->
-    <bean id="progressEventsListener" name="progressEventsListener" class="com.hp.octane.plugins.jetbrains.teamcity.events.ProgressEventsListener"/>
+    <bean id="progressEventsListener" name="progressEventsListener"
+          class="com.hp.octane.plugins.jetbrains.teamcity.events.ProgressEventsListener"/>
 
     <!-- TESTS -->
-    <bean id = "testsResultEventsListener" name = "testsResultEventsListener" class="com.hp.octane.plugins.jetbrains.teamcity.tests.TestsResultEventsListener"/>
+    <bean id="testsResultEventsListener" name="testsResultEventsListener"
+          class="com.hp.octane.plugins.jetbrains.teamcity.tests.TestsResultEventsListener"/>
 </beans>
