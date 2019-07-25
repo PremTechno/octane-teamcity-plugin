@@ -40,7 +40,7 @@ public class ModelCommonFactory {
     private static final DTOFactory dtoFactory = DTOFactory.getInstance();
 
     @Autowired
-    private ParametersFactory parametersFactory;
+    private TCPluginParametersFactory parametersFactory;
     @Autowired
     private ProjectManager projectManager;
 

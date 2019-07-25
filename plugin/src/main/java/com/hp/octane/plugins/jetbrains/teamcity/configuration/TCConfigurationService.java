@@ -155,7 +155,7 @@ public class TCConfigurationService {
 			logger.error("failed to save Octane configurations", jaxbe);
 			return buildResponseStringEmptyConfigsWithError("failed to save Octane configurations");
 		} catch (IllegalStateException e) {
-			logger.error("faild to publish Octane configurations", e);
+			logger.error("failed to publish Octane configurations", e);
 			return buildResponseStringEmptyConfigsWithError("failed to publish Octane configurations");
 		}
 	}

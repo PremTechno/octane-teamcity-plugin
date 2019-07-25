@@ -39,7 +39,7 @@ public class SnapshotsFactory {
 	@Autowired
 	private ModelCommonFactory modelCommonFactory;
 	@Autowired
-	private ParametersFactory parametersFactory;
+	private TCPluginParametersFactory parametersFactory;
 	@Autowired
 	private ProjectManager projectManager;
 
