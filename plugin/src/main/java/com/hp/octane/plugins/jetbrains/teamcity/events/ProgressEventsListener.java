@@ -127,6 +127,11 @@ public class ProgressEventsListener extends BuildServerAdapter implements Parame
 	}
 
 	@Override
+	public void buildInterrupted(@NotNull SRunningBuild build) {
+		buildFinished(build);
+	}
+
+	@Override
 	public void buildFinished(@NotNull SRunningBuild build) {
 		TriggeredBy triggeredBy = build.getTriggeredBy();
 		List<CIEventCause> causes = new ArrayList<>();
@@ -144,7 +149,7 @@ public class ProgressEventsListener extends BuildServerAdapter implements Parame
 				.setStartTime(build.getStartDate().getTime())
 				.setEstimatedDuration(build.getDurationEstimate() * 1000)
 				.setDuration(build.getDuration() * 1000)
-				.setResult(modelCommonFactory.resultFromNativeStatus(build.getBuildStatus()));
+				.setResult(modelCommonFactory.resultFromNativeStatus(build.getBuildStatus(), build.isInterrupted()));
 		OctaneSDK.getClients().forEach(client -> client.getEventsService().publishEvent(event));
 	}
 

@@ -213,7 +213,7 @@ public class SnapshotsFactory {
 					.setStartTime(currentBuild.getStartDate().getTime())
 					.setCauses(null)
 					.setStatus(CIBuildStatus.FINISHED)
-					.setResult(modelCommonFactory.resultFromNativeStatus(currentBuild.getBuildStatus()));
+					.setResult(modelCommonFactory.resultFromNativeStatus(currentBuild.getBuildStatus(), false));
 		}
 
 		return result;
