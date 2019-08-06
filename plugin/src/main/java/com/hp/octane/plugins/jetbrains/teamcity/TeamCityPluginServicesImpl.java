@@ -43,6 +43,7 @@ import com.hp.octane.plugins.jetbrains.teamcity.utils.SpringContextBridge;
 import jetbrains.buildServer.Build;
 import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
+import jetbrains.buildServer.serverSide.impl.RunningBuildState;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
@@ -186,8 +187,10 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 			SUser impersonatedUser = getImpersonatedUser();
 			List<SRunningBuild> runningBuilds = buildType.getRunningBuilds(impersonatedUser);
 			for (SRunningBuild runningBuild : runningBuilds) {
-				runningBuild.stop(impersonatedUser, "build number [" + runningBuild.getBuildNumber() + "] of project "
-						+ runningBuild.getFullName() + " was canceled");
+				String interruptedMessage = "build number [" + runningBuild.getBuildNumber() + "] of project "
+						+ runningBuild.getFullName() + " was canceled";
+				runningBuild.setInterrupted(RunningBuildState.INTERRUPTED_BY_USER, impersonatedUser, interruptedMessage);
+				runningBuild.stop(impersonatedUser, interruptedMessage);
 			}
 		}
 	}
