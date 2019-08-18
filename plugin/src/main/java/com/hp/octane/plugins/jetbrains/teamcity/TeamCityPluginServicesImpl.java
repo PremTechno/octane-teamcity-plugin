@@ -32,7 +32,6 @@ import com.hp.octane.integrations.dto.tests.TestRun;
 import com.hp.octane.integrations.dto.tests.TestRunResult;
 import com.hp.octane.integrations.dto.tests.TestsResult;
 import com.hp.octane.integrations.exceptions.PermissionException;
-import com.hp.octane.integrations.exceptions.SPIMethodNotImplementedException;
 import com.hp.octane.integrations.utils.CIPluginSDKUtils;
 import com.hp.octane.plugins.jetbrains.teamcity.configuration.OctaneConfigStructure;
 import com.hp.octane.plugins.jetbrains.teamcity.configuration.TCConfigurationHolder;
@@ -49,6 +48,7 @@ import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.ExceptionUtil;
 import jetbrains.buildServer.web.openapi.PluginDescriptor;
+import org.apache.commons.httpclient.HttpStatus;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -93,7 +93,7 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 			SUser impersonatedUser = userModel.findUserAccount(null, conf.getImpersonatedUser());
 			if (impersonatedUser == null) {
 				log.error("Impersonated user '" + conf.getImpersonatedUser() + "' does not exist in TeamCity");
-				throw new PermissionException(405);
+				throw new PermissionException(HttpStatus.SC_UNAUTHORIZED);
 			}
 			return impersonatedUser;
 		}
@@ -148,7 +148,7 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 		} catch (Throwable throwable) {
 			if (throwable instanceof AccessDeniedException) {
 				log.error(throwable.getMessage(), throwable);
-				throw new PermissionException(403);
+				throw new PermissionException(HttpStatus.SC_FORBIDDEN);
 			}
 			ExceptionUtil.rethrowAsRuntimeException(throwable);
 		}
@@ -264,7 +264,7 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 			} catch (Throwable throwable) {
 				if (throwable instanceof AccessDeniedException) {
 					log.error(throwable.getMessage(), throwable);
-					throw new PermissionException(403);
+					throw new PermissionException(HttpStatus.SC_FORBIDDEN);
 				}
 				ExceptionUtil.rethrowAsRuntimeException(throwable);
 			}
