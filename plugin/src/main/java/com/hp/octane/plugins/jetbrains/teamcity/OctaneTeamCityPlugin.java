@@ -83,15 +83,20 @@ public class OctaneTeamCityPlugin implements ServerExtension {
         holder.setConfigs(configs);
         ensureServerInstanceID();
         for (OctaneConfigStructure config : holder.getConfigs()) {
-            if (config.getLocation() == null || config.getLocation().isEmpty()) {
+               if (config.getLocation() == null || config.getLocation().isEmpty()) {
 
-            }
-            OctaneConfiguration octaneConfiguration = new OctaneConfiguration(config.getIdentity(), config.getLocation(),
-                    config.getSharedSpace());
-            octaneConfiguration.setClient(config.getUsername());
-            octaneConfiguration.setSecret(config.getSecretPassword());
-            OctaneSDK.addClient(octaneConfiguration, TeamCityPluginServicesImpl.class);
-            holder.getOctaneConfigurations().put(config.getIdentity(), octaneConfiguration);
+               }
+               OctaneConfiguration octaneConfiguration = new OctaneConfiguration(config.getIdentity(), config.getLocation(),
+                       config.getSharedSpace());
+               octaneConfiguration.setClient(config.getUsername());
+               octaneConfiguration.setSecret(config.getSecretPassword());
+               try{
+                   OctaneSDK.addClient(octaneConfiguration, TeamCityPluginServicesImpl.class);
+                   holder.getOctaneConfigurations().put(config.getIdentity(), octaneConfiguration);
+               } catch (Exception e) {
+                   logger.error(e.getMessage(),e);
+               }
+
         }
         logger.info("ALM Octane CI Plugin initialized; current configurations: " + holder.getConfigs().stream().map(Object::toString).collect(Collectors.joining(",")));
     }

@@ -22,15 +22,14 @@ import com.fasterxml.jackson.databind.type.CollectionType;
 import com.fasterxml.jackson.databind.type.TypeFactory;
 import com.hp.octane.integrations.OctaneConfiguration;
 import com.hp.octane.integrations.OctaneSDK;
+import com.hp.octane.integrations.exceptions.OctaneSDKGeneralException;
+import com.hp.octane.integrations.utils.OctaneUrlParser;
 import com.hp.octane.plugins.jetbrains.teamcity.TeamCityPluginServicesImpl;
 import com.hp.octane.plugins.jetbrains.teamcity.configuration.*;
 import com.hp.octane.plugins.jetbrains.teamcity.utils.Utils;
-import org.apache.http.NameValuePair;
-import org.apache.http.client.utils.URLEncodedUtils;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.util.StringUtils;
 import org.springframework.web.servlet.ModelAndView;
 import org.springframework.web.servlet.mvc.Controller;
 
@@ -38,9 +37,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.PrintWriter;
-import java.net.MalformedURLException;
-import java.net.URISyntaxException;
-import java.net.URL;
 import java.util.*;
 
 import static com.hp.octane.plugins.jetbrains.teamcity.utils.Utils.buildResponseStringEmptyConfigsWithError;
@@ -51,7 +47,7 @@ import static com.hp.octane.plugins.jetbrains.teamcity.utils.Utils.buildResponse
 
 public class ConfigurationActionsController implements Controller {
 	private static final Logger logger = LogManager.getLogger(ConfigurationActionsController.class);
-	private static final String PARAM_SHARED_SPACE = "p"; // NON-NLS
+
 	@Autowired
 	private TCConfigurationService configurationService;
 	@Autowired
@@ -68,20 +64,21 @@ public class ConfigurationActionsController implements Controller {
 			try {
 				if ("test".equalsIgnoreCase(action)) {
 					String server = httpServletRequest.getParameter("server");
-					MqmProject project = parseUiLocation(server);
-					if (project.hasError()) {
-						returnStr = buildResponseStringEmptyConfigsWithError(project.getErrorMsg());
-					} else {
+					OctaneUrlParser octaneUrlParser;
+					try {
+						octaneUrlParser = OctaneUrlParser.parse(server);
 						String apiKey = httpServletRequest.getParameter("username");
 						String secret = httpServletRequest.getParameter("password");
 
 						OctaneConfiguration testedOctaneConfiguration = new OctaneConfiguration(UUID.randomUUID().toString(),
-								project.getLocation(),
-								project.getSharedSpace());
+								octaneUrlParser.getLocation(),
+								octaneUrlParser.getSharedSpace());
 						testedOctaneConfiguration.setClient(apiKey);
 						testedOctaneConfiguration.setSecret(secret);
 						String impersonatedUser = httpServletRequest.getParameter("impersonatedUser");
 						returnStr = configurationService.checkConfiguration(testedOctaneConfiguration, impersonatedUser);
+					} catch (OctaneSDKGeneralException error){
+						returnStr = buildResponseStringEmptyConfigsWithError(error.getMessage());
 					}
 				} else {
 					//save configuration
@@ -155,33 +152,42 @@ public class ConfigurationActionsController implements Controller {
 					.filter(or_conf -> or_conf.getIdentity().equals(newConf.getIdentity()))
 					.findAny()
 					.orElse(null);
-			if (result == null) {
-				MqmProject project = checkAndUpdateIdentityAndLocationIfNotTheSame(newConf);
-				String sp = project.getSharedSpace();
-				if (project.hasError()) {
-					return buildResponseStringEmptyConfigsWithError(project.getErrorMsg());
+
+			if (result == null || holder.getOctaneConfigurations().get(result.getIdentity()) == null) {
+				OctaneUrlParser octaneUrlParser;
+				try {
+					octaneUrlParser = checkAndUpdateIdentityAndLocationIfNotTheSame(newConf);
+				} catch (OctaneSDKGeneralException error){
+					return buildResponseStringEmptyConfigsWithError(error.getMessage());
+
 				}
 				OctaneConfiguration octaneConfiguration = new OctaneConfiguration(newConf.getIdentity(), newConf.getLocation(),
-						project.getSharedSpace());
+						octaneUrlParser.getSharedSpace());
 				octaneConfiguration.setClient(newConf.getUsername());
 				octaneConfiguration.setSecret(newConf.getSecretPassword());
+
 				try {
 					OctaneSDK.addClient(octaneConfiguration, TeamCityPluginServicesImpl.class);
 				} catch (Exception e) {
 					return buildResponseStringEmptyConfigsWithError(e.getMessage());
 				}
 				holder.getOctaneConfigurations().put(newConf.getIdentity(), octaneConfiguration);
-				newConf.setSharedSpace(sp);
+				newConf.setSharedSpace(octaneUrlParser.getSharedSpace());
 				holder.getConfigs().add(newConf);
 			} else {
 				//update existing configuration
 				OctaneConfiguration octaneConfiguration = holder.getOctaneConfigurations().get(result.getIdentity());
-				MqmProject project = parseUiLocation(newConf.getUiLocation());
-				if (project.hasError()) {
-					return buildResponseStringEmptyConfigsWithError(project.getErrorMsg());
+
+				OctaneUrlParser octaneUrlParser;
+				try {
+					octaneUrlParser = OctaneUrlParser.parse(newConf.getUiLocation());
+				} catch (OctaneSDKGeneralException error){
+					return buildResponseStringEmptyConfigsWithError(error.getMessage());
+
 				}
-				String sp = project.getSharedSpace();
-				String location = project.getLocation();
+
+				String sp = octaneUrlParser.getSharedSpace();
+				String location = octaneUrlParser.getLocation();
 				octaneConfiguration.setUrl(newConf.getUiLocation());
 				result.setUiLocation(newConf.getUiLocation());
 				octaneConfiguration.setClient(newConf.getUsername());
@@ -198,15 +204,12 @@ public class ConfigurationActionsController implements Controller {
 		return save();
 	}
 
-	private MqmProject checkAndUpdateIdentityAndLocationIfNotTheSame(OctaneConfigStructure newConf) {
-		String identity = newConf.getIdentity();
-		MqmProject project = parseUiLocation(newConf.getUiLocation());
-		if (project.hasError()) {
-			return project;
-		}
-		String location = project.getLocation();
-		String sp = project.getSharedSpace();
-		newConf.setLocation(location);
+	private OctaneUrlParser checkAndUpdateIdentityAndLocationIfNotTheSame(OctaneConfigStructure newConf) throws OctaneSDKGeneralException{
+
+	    String identity = newConf.getIdentity();
+		OctaneUrlParser octaneUrlParser = OctaneUrlParser.parse(newConf.getUiLocation());
+		newConf.setLocation(octaneUrlParser.getLocation());
+
 		if (holder.getConfigs().contains(newConf)) {
 			OctaneConfigStructure matchingObject = holder.getConfigs().stream().
 					filter(c -> c.equals(newConf)).
@@ -214,14 +217,14 @@ public class ConfigurationActionsController implements Controller {
 			if (matchingObject != null) {
 				newConf.setIdentity(matchingObject.getIdentity());
 				newConf.setIdentityFrom(matchingObject.getIdentityFrom());
-				return project;
+				return octaneUrlParser;
 			}
 		}
 		if (identity == null || identity.equals("") || "undefined".equalsIgnoreCase(identity)) {
 			newConf.setIdentity(UUID.randomUUID().toString());
 			newConf.setIdentityFrom(String.valueOf(new Date().getTime()));
 		}
-		return project;
+		return octaneUrlParser;
 	}
 
 	public String reloadConfiguration() {
@@ -232,36 +235,6 @@ public class ConfigurationActionsController implements Controller {
 		} catch (JsonProcessingException jpe) {
 			logger.error("failed to reload configuration", jpe);
 			return Utils.buildResponseStringEmptyConfigsWithError("failed to reload configuration");
-		}
-	}
-
-	public MqmProject parseUiLocation(String uiLocation) {
-		try {
-			URL url = new URL(uiLocation);
-			String location;
-			int contextPos = uiLocation.indexOf("/ui");
-			if (contextPos < 0) {
-				return new MqmProject("Application context not found in URL");
-			} else {
-				location = uiLocation.substring(0, contextPos);
-			}
-			List<NameValuePair> params = URLEncodedUtils.parse(url.toURI(), "UTF-8");
-			for (NameValuePair param : params) {
-				if (param.getName().equals(PARAM_SHARED_SPACE)) {
-					String[] sharedSpaceAndWorkspace = param.getValue().split("/");
-					if (sharedSpaceAndWorkspace.length < 1 || StringUtils.isEmpty(sharedSpaceAndWorkspace[0])) {
-						return new MqmProject("Unexpected shared space parameter value");
-					}
-					return new MqmProject(location, sharedSpaceAndWorkspace[0]);
-				}
-			}
-			return new MqmProject("Missing shared space parameter");
-		} catch (MalformedURLException e) {
-			logger.error(e.getMessage());
-			return new MqmProject("Invalid URL");
-		} catch (URISyntaxException e) {
-			logger.error(e.getMessage());
-			return new MqmProject("Invalid URL");
 		}
 	}
 }
