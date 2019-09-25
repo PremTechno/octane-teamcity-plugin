@@ -44,6 +44,7 @@ import jetbrains.buildServer.serverSide.*;
 import jetbrains.buildServer.serverSide.auth.AccessDeniedException;
 import jetbrains.buildServer.serverSide.impl.RunningBuildState;
 import jetbrains.buildServer.serverSide.parameters.ParameterFactory;
+import jetbrains.buildServer.tests.TestName;
 import jetbrains.buildServer.users.SUser;
 import jetbrains.buildServer.users.UserModel;
 import jetbrains.buildServer.util.ExceptionUtil;
@@ -65,7 +66,7 @@ import java.util.*;
 public class TeamCityPluginServicesImpl extends CIPluginServices {
 	private static final Logger log = LogManager.getLogger(TeamCityPluginServicesImpl.class);
 	private static final DTOFactory dtoFactory = DTOFactory.getInstance();
-
+	private final int MAX_SIZE = 255;
 	private ProjectManager projectManager;
 	private BuildServerEx buildServerEx;
 	private ModelCommonFactory modelCommonFactory;
@@ -284,16 +285,25 @@ public class TeamCityPluginServicesImpl extends CIPluginServices {
 			} else if (testRun.getStatus().isSuccessful()) {
 				testResultStatus = TestRunResult.PASSED;
 			}
-
-			TestRun tr = dtoFactory.newDTO(TestRun.class)
-					.setModuleName("")
-					.setPackageName(testRun.getTest().getName().getPackageName())
-					.setClassName(testRun.getTest().getName().getClassName())
-					.setTestName(testRun.getTest().getName().getTestMethodName())
-					.setResult(testResultStatus)
-					.setStarted(build.getStartDate().getTime())
-					.setDuration((long) testRun.getDuration());
-			result.add(tr);
+			TestName fqTestName = testRun.getTest().getName();
+			String pkgName = fqTestName.getPackageName();
+			String className = fqTestName.getClassName();
+			String testName = fqTestName.getTestMethodName();
+			if (pkgName.length() > MAX_SIZE ||
+					className.length() > MAX_SIZE ||
+					testName.length() > MAX_SIZE) {
+				log.error("Test [" + fqTestName.toString() + "] excluded from test results sending to ALM Octane. One of its parameters (package name, class name or test name) exceeds max size of 255 chars length.");
+			} else {
+				TestRun tr = dtoFactory.newDTO(TestRun.class)
+						.setModuleName("")
+						.setPackageName(pkgName)
+						.setClassName(className)
+						.setTestName(testName)
+						.setResult(testResultStatus)
+						.setStarted(build.getStartDate().getTime())
+						.setDuration((long) testRun.getDuration());
+				result.add(tr);
+			}
 		}
 
 		return result;
