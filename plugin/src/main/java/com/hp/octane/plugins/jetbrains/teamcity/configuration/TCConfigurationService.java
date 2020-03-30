@@ -63,7 +63,7 @@ public class TCConfigurationService {
 		String resultMessage = setMessageFont("Connection succeeded", "green");
 
 		try {
-			OctaneSDK.testAndValidateOctaneConfiguration(octaneConfiguration.getUrl(),
+			OctaneSDK.testOctaneConfiguration(octaneConfiguration.getUrl(),
 					octaneConfiguration.getSharedSpace(),
 					octaneConfiguration.getClient(),
 					octaneConfiguration.getSecret(),

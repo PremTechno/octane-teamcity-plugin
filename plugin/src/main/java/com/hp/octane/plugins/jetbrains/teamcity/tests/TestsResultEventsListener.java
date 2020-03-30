@@ -41,7 +41,8 @@ public class TestsResultEventsListener extends BuildServerAdapter {
 	public void buildFinished(@NotNull SRunningBuild build) {
 		BuildStatistics stats = build.getBuildStatistics(new BuildStatisticsOptions());
 		if (!stats.getTests(null, BuildStatistics.Order.NATURAL_ASC).isEmpty()) {
-			OctaneSDK.getClients().forEach(client -> client.getTestsService().enqueuePushTestsResult(build.getBuildTypeExternalId(), String.valueOf(build.getBuildId())));
+			OctaneSDK.getClients().forEach(client -> client.getTestsService().enqueuePushTestsResult(build.getBuildTypeExternalId(),
+					String.valueOf(build.getBuildId()), build.getBuildTypeExternalId()));
 		}
 	}
 }
